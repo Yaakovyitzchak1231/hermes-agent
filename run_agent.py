@@ -7630,7 +7630,7 @@ class AIAgent:
             self._executing_tools = False
 
     def _invoke_tool(self, function_name: str, function_args: dict, effective_task_id: str,
-                     tool_call_id: Optional[str] = None) -> str:
+                     tool_call_id: Optional[str] = None, messages: Optional[list] = None) -> str:
         """Invoke a single tool and return the result string. No display logic.
 
         Handles both agent-level tools (todo, memory, etc.) and registry-dispatched
@@ -7641,8 +7641,10 @@ class AIAgent:
         block_message: Optional[str] = None
         try:
             from hermes_cli.plugins import get_pre_tool_call_block_message
+            _recent_msgs = [m for m in (messages or [])[-8:] if isinstance(m, dict) and m.get("role") == "user"]
             block_message = get_pre_tool_call_block_message(
                 function_name, function_args, task_id=effective_task_id or "",
+                recent_messages=_recent_msgs,
             )
         except Exception:
             pass
@@ -7868,7 +7870,7 @@ class AIAgent:
                 pass
             start = time.time()
             try:
-                result = self._invoke_tool(function_name, function_args, effective_task_id, tool_call.id)
+                result = self._invoke_tool(function_name, function_args, effective_task_id, tool_call.id, messages)
             except Exception as tool_error:
                 result = f"Error executing tool '{function_name}': {tool_error}"
                 logger.error("_invoke_tool raised for %s: %s", function_name, tool_error, exc_info=True)
@@ -8078,8 +8080,10 @@ class AIAgent:
             _block_msg: Optional[str] = None
             try:
                 from hermes_cli.plugins import get_pre_tool_call_block_message
+                _recent_msgs = [m for m in messages[-8:] if isinstance(m, dict) and m.get("role") == "user"]
                 _block_msg = get_pre_tool_call_block_message(
                     function_name, function_args, task_id=effective_task_id or "",
+                    recent_messages=_recent_msgs,
                 )
             except Exception:
                 pass
