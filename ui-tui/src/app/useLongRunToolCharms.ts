@@ -2,10 +2,9 @@ import { useEffect, useRef } from 'react'
 
 import { LONG_RUN_CHARMS } from '../content/charms.js'
 import { pick, toolTrailLabel } from '../lib/text.js'
+import type { ActiveTool } from '../types.js'
 
 import { turnController } from './turnController.js'
-import { useTurnSelector } from './turnStore.js'
-import { getUiState } from './uiStore.js'
 
 const DELAY_MS = 8_000
 const INTERVAL_MS = 10_000
@@ -16,28 +15,21 @@ interface Slot {
   lastAt: number
 }
 
-export function useLongRunToolCharms() {
-  const tools = useTurnSelector(state => state.tools)
+export function useLongRunToolCharms(busy: boolean, tools: ActiveTool[]) {
   const slots = useRef(new Map<string, Slot>())
 
   useEffect(() => {
-    if (!getUiState().busy || !tools.length) {
+    if (!busy || !tools.length) {
       slots.current.clear()
 
       return
     }
 
     const tick = () => {
-      if (!getUiState().busy) {
-        slots.current.clear()
-
-        return
-      }
-
       const now = Date.now()
       const liveIds = new Set(tools.map(t => t.id))
 
-      for (const key of Array.from(slots.current.keys())) {
+      for (const key of [...slots.current.keys()]) {
         if (!liveIds.has(key)) {
           slots.current.delete(key)
         }
@@ -65,5 +57,5 @@ export function useLongRunToolCharms() {
     const id = setInterval(tick, 1000)
 
     return () => clearInterval(id)
-  }, [tools])
+  }, [busy, tools])
 }

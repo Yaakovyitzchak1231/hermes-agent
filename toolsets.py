@@ -43,7 +43,7 @@ _HERMES_CORE_TOOLS = [
     "browser_navigate", "browser_snapshot", "browser_click",
     "browser_type", "browser_scroll", "browser_back",
     "browser_press", "browser_get_images",
-    "browser_vision", "browser_console", "browser_cdp", "browser_dialog",
+    "browser_vision", "browser_console",
     # Text-to-speech
     "text_to_speech",
     # Planning & memory
@@ -60,6 +60,11 @@ _HERMES_CORE_TOOLS = [
     "send_message",
     # Home Assistant smart home control (gated on HASS_TOKEN via check_fn)
     "ha_list_entities", "ha_get_state", "ha_list_services", "ha_call_service",
+    # Phone companion — Android automation via Tailscale
+    "phone_connect", "phone_disconnect", "phone_get_app", "phone_get_ui",
+    "phone_get_notifications", "phone_get_events", "phone_tap", "phone_swipe",
+    "phone_type", "phone_set_text", "phone_click", "phone_press_key",
+    "phone_open_app", "phone_scroll", "phone_device_info", "phone_get_focused",
 ]
 
 
@@ -115,8 +120,7 @@ TOOLSETS = {
             "browser_navigate", "browser_snapshot", "browser_click",
             "browser_type", "browser_scroll", "browser_back",
             "browser_press", "browser_get_images",
-            "browser_vision", "browser_console", "browser_cdp",
-            "browser_dialog", "web_search"
+            "browser_vision", "browser_console", "web_search"
         ],
         "includes": []
     },
@@ -152,7 +156,7 @@ TOOLSETS = {
     },
     
     "tts": {
-        "description": "Text-to-speech: convert text to audio with Edge TTS (free), ElevenLabs, OpenAI, or xAI",
+        "description": "Text-to-speech: convert text to audio with Edge TTS (free), ElevenLabs, or OpenAI",
         "tools": ["text_to_speech"],
         "includes": []
     },
@@ -202,54 +206,6 @@ TOOLSETS = {
         "includes": []
     },
 
-    "discord": {
-        "description": "Discord read and participate tools (fetch messages, search members, create threads)",
-        "tools": ["discord"],
-        "includes": [],
-    },
-
-    "discord_admin": {
-        "description": "Discord server management (list channels/roles, pin messages, assign roles)",
-        "tools": ["discord_admin"],
-        "includes": [],
-    },
-
-    "yuanbao": {
-        "description": "Yuanbao platform tools - group info, member queries, DM, stickers",
-        "tools": [
-            "yb_query_group_info",
-            "yb_query_group_members",
-            "yb_send_dm",
-            "yb_search_sticker",
-            "yb_send_sticker",
-        ],
-        "includes": []
-    },
-
-    "feishu_doc": {
-        "description": "Read Feishu/Lark document content",
-        "tools": ["feishu_doc_read"],
-        "includes": []
-    },
-
-    "feishu_drive": {
-        "description": "Feishu/Lark document comment operations (list, reply, add)",
-        "tools": [
-            "feishu_drive_list_comments", "feishu_drive_list_comment_replies",
-            "feishu_drive_reply_comment", "feishu_drive_add_comment",
-        ],
-        "includes": []
-    },
-
-    "spotify": {
-        "description": "Native Spotify playback, search, playlist, album, and library tools",
-        "tools": [
-            "spotify_playback", "spotify_devices", "spotify_queue", "spotify_search",
-            "spotify_playlists", "spotify_albums", "spotify_library",
-        ],
-        "includes": []
-    },
-
 
     # Scenario-specific toolsets
     
@@ -283,7 +239,7 @@ TOOLSETS = {
             "browser_navigate", "browser_snapshot", "browser_click",
             "browser_type", "browser_scroll", "browser_back",
             "browser_press", "browser_get_images",
-            "browser_vision", "browser_console", "browser_cdp", "browser_dialog",
+            "browser_vision", "browser_console",
             "todo", "memory",
             "session_search",
             "execute_code", "delegate_task",
@@ -308,7 +264,7 @@ TOOLSETS = {
             "browser_navigate", "browser_snapshot", "browser_click",
             "browser_type", "browser_scroll", "browser_back",
             "browser_press", "browser_get_images",
-            "browser_vision", "browser_console", "browser_cdp", "browser_dialog",
+            "browser_vision", "browser_console",
             # Planning & memory
             "todo", "memory",
             # Session history search
@@ -329,18 +285,7 @@ TOOLSETS = {
         "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
-
-    "hermes-cron": {
-        # Mirrors hermes-cli so cron's "default" toolset is the same set of
-        # core tools users see interactively — then `hermes tools` filters
-        # them down per the platform config. _DEFAULT_OFF_TOOLSETS (moa,
-        # homeassistant, rl) are excluded by _get_platform_tools() unless
-        # the user explicitly enables them.
-        "description": "Default cron toolset - same core tools as hermes-cli; gated by `hermes tools`",
-        "tools": _HERMES_CORE_TOOLS,
-        "includes": []
-    },
-
+    
     "hermes-telegram": {
         "description": "Telegram bot toolset - full access for personal use (terminal has safety checks)",
         "tools": _HERMES_CORE_TOOLS,
@@ -349,10 +294,7 @@ TOOLSETS = {
     
     "hermes-discord": {
         "description": "Discord bot toolset - full access (terminal has safety checks via dangerous command approval)",
-        "tools": _HERMES_CORE_TOOLS + [
-            "discord",
-            "discord_admin",
-        ],
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
     
@@ -412,24 +354,12 @@ TOOLSETS = {
 
     "hermes-feishu": {
         "description": "Feishu/Lark bot toolset - enterprise messaging via Feishu/Lark (full access)",
-        "tools": _HERMES_CORE_TOOLS + [
-            "feishu_doc_read",
-            "feishu_drive_list_comments",
-            "feishu_drive_list_comment_replies",
-            "feishu_drive_reply_comment",
-            "feishu_drive_add_comment",
-        ],
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
     "hermes-weixin": {
         "description": "Weixin bot toolset - personal WeChat messaging via iLink (full access)",
-        "tools": _HERMES_CORE_TOOLS,
-        "includes": []
-    },
-
-    "hermes-qqbot": {
-        "description": "QQBot toolset - QQ messaging via Official Bot API v2 (full access)",
         "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
@@ -443,19 +373,6 @@ TOOLSETS = {
     "hermes-wecom-callback": {
         "description": "WeCom callback toolset - enterprise self-built app messaging (full access)",
         "tools": _HERMES_CORE_TOOLS,
-        "includes": []
-    },
-
-    "hermes-yuanbao": {
-        "description": "Yuanbao Bot 元宝消息平台工具集 - 群信息、成员查询、私聊、贴纸表情",
-        "tools": _HERMES_CORE_TOOLS + [
-            "yb_query_group_info",
-            "yb_query_group_members",
-            "yb_send_dm",
-            "yb_search_sticker",
-            "yb_send_sticker",
-        ],
-        "module": "tools.yuanbao_tools",
         "includes": []
     },
 
@@ -474,7 +391,7 @@ TOOLSETS = {
     "hermes-gateway": {
         "description": "Gateway toolset - union of all messaging platform tools",
         "tools": [],
-        "includes": ["hermes-telegram", "hermes-discord", "hermes-whatsapp", "hermes-slack", "hermes-signal", "hermes-bluebubbles", "hermes-homeassistant", "hermes-email", "hermes-sms", "hermes-mattermost", "hermes-matrix", "hermes-dingtalk", "hermes-feishu", "hermes-wecom", "hermes-wecom-callback", "hermes-weixin", "hermes-qqbot", "hermes-webhook", "hermes-yuanbao"]
+        "includes": ["hermes-telegram", "hermes-discord", "hermes-whatsapp", "hermes-slack", "hermes-signal", "hermes-bluebubbles", "hermes-homeassistant", "hermes-email", "hermes-sms", "hermes-mattermost", "hermes-matrix", "hermes-dingtalk", "hermes-feishu", "hermes-wecom", "hermes-wecom-callback", "hermes-weixin", "hermes-webhook"]
     }
 }
 
@@ -491,39 +408,8 @@ def get_toolset(name: str) -> Optional[Dict[str, Any]]:
         Dict: Toolset definition with description, tools, and includes
         None: If toolset not found
     """
-    toolset = TOOLSETS.get(name)
-    if toolset:
-        return toolset
-
-    try:
-        from tools.registry import registry
-    except Exception:
-        return None
-
-    registry_toolset = name
-    description = f"Plugin toolset: {name}"
-    alias_target = registry.get_toolset_alias_target(name)
-
-    if name not in _get_plugin_toolset_names():
-        registry_toolset = alias_target
-        if not registry_toolset:
-            return None
-        description = f"MCP server '{name}' tools"
-    else:
-        reverse_aliases = {
-            canonical: alias
-            for alias, canonical in _get_registry_toolset_aliases().items()
-            if alias not in TOOLSETS
-        }
-        alias = reverse_aliases.get(name)
-        if alias:
-            description = f"MCP server '{alias}' tools"
-
-    return {
-        "description": description,
-        "tools": registry.get_tool_names_for_toolset(registry_toolset),
-        "includes": [],
-    }
+    # Return toolset definition
+    return TOOLSETS.get(name)
 
 
 def resolve_toolset(name: str, visited: Set[str] = None) -> List[str]:
@@ -551,7 +437,7 @@ def resolve_toolset(name: str, visited: Set[str] = None) -> List[str]:
             # Use a fresh visited set per branch to avoid cross-branch contamination
             resolved = resolve_toolset(toolset_name, visited.copy())
             all_tools.update(resolved)
-        return sorted(all_tools)
+        return list(all_tools)
 
     # Check for cycles / already-resolved (diamond deps).
     # Silently return [] — either this is a diamond (not a bug, tools already
@@ -562,8 +448,15 @@ def resolve_toolset(name: str, visited: Set[str] = None) -> List[str]:
     visited.add(name)
 
     # Get toolset definition
-    toolset = get_toolset(name)
+    toolset = TOOLSETS.get(name)
     if not toolset:
+        # Fall back to tool registry for plugin-provided toolsets
+        if name in _get_plugin_toolset_names():
+            try:
+                from tools.registry import registry
+                return [e.name for e in registry._tools.values() if e.toolset == name]
+            except Exception:
+                pass
         return []
 
     # Collect direct tools
@@ -576,7 +469,7 @@ def resolve_toolset(name: str, visited: Set[str] = None) -> List[str]:
         included_tools = resolve_toolset(included_name, visited)
         tools.update(included_tools)
     
-    return sorted(tools)
+    return list(tools)
 
 
 def resolve_multiple_toolsets(toolset_names: List[str]) -> List[str]:
@@ -595,7 +488,7 @@ def resolve_multiple_toolsets(toolset_names: List[str]) -> List[str]:
         tools = resolve_toolset(name)
         all_tools.update(tools)
     
-    return sorted(all_tools)
+    return list(all_tools)
 
 
 def _get_plugin_toolset_names() -> Set[str]:
@@ -607,21 +500,12 @@ def _get_plugin_toolset_names() -> Set[str]:
     try:
         from tools.registry import registry
         return {
-            toolset_name
-            for toolset_name in registry.get_registered_toolset_names()
-            if toolset_name not in TOOLSETS
+            entry.toolset
+            for entry in registry._tools.values()
+            if entry.toolset not in TOOLSETS
         }
     except Exception:
         return set()
-
-
-def _get_registry_toolset_aliases() -> Dict[str, str]:
-    """Return explicit toolset aliases registered in the live registry."""
-    try:
-        from tools.registry import registry
-        return registry.get_registered_toolset_aliases()
-    except Exception:
-        return {}
 
 
 def get_all_toolsets() -> Dict[str, Dict[str, Any]]:
@@ -633,19 +517,19 @@ def get_all_toolsets() -> Dict[str, Dict[str, Any]]:
     Returns:
         Dict: All toolset definitions
     """
-    result = dict(TOOLSETS)
-    aliases = _get_registry_toolset_aliases()
+    result = TOOLSETS.copy()
+    # Add plugin-provided toolsets (synthetic entries)
     for ts_name in _get_plugin_toolset_names():
-        display_name = ts_name
-        for alias, canonical in aliases.items():
-            if canonical == ts_name and alias not in TOOLSETS:
-                display_name = alias
-                break
-        if display_name in result:
-            continue
-        toolset = get_toolset(display_name)
-        if toolset:
-            result[display_name] = toolset
+        if ts_name not in result:
+            try:
+                from tools.registry import registry
+                tools = [e.name for e in registry._tools.values() if e.toolset == ts_name]
+                result[ts_name] = {
+                    "description": f"Plugin toolset: {ts_name}",
+                    "tools": tools,
+                }
+            except Exception:
+                pass
     return result
 
 
@@ -659,14 +543,7 @@ def get_toolset_names() -> List[str]:
         List[str]: List of toolset names
     """
     names = set(TOOLSETS.keys())
-    aliases = _get_registry_toolset_aliases()
-    for ts_name in _get_plugin_toolset_names():
-        for alias, canonical in aliases.items():
-            if canonical == ts_name and alias not in TOOLSETS:
-                names.add(alias)
-                break
-        else:
-            names.add(ts_name)
+    names |= _get_plugin_toolset_names()
     return sorted(names)
 
 
@@ -687,9 +564,8 @@ def validate_toolset(name: str) -> bool:
         return True
     if name in TOOLSETS:
         return True
-    if name in _get_plugin_toolset_names():
-        return True
-    return name in _get_registry_toolset_aliases()
+    # Check tool registry for plugin-provided toolsets
+    return name in _get_plugin_toolset_names()
 
 
 def create_custom_toolset(

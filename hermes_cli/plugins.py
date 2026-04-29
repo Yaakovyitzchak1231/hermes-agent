@@ -71,28 +71,6 @@ VALID_HOOKS: Set[str] = {
     "on_session_finalize",
     "on_session_reset",
     "subagent_stop",
-    # Gateway pre-dispatch hook. Fired once per incoming MessageEvent
-    # after the internal-event guard but BEFORE auth/pairing and agent
-    # dispatch. Plugins may return a dict to influence flow:
-    #   {"action": "skip",    "reason": "..."}  -> drop message (no reply)
-    #   {"action": "rewrite", "text": "..."}    -> replace event.text, continue
-    #   {"action": "allow"}  /  None             -> normal dispatch
-    # Kwargs: event: MessageEvent, gateway: GatewayRunner, session_store.
-    "pre_gateway_dispatch",
-    # Approval lifecycle hooks. Fired by tools/approval.py when a dangerous
-    # command needs user approval -- fires BOTH for CLI-interactive prompts
-    # and for gateway/ACP approvals (Telegram, Discord, Slack, TUI, etc.).
-    # Observers only: return values are ignored. Plugins cannot veto or
-    # pre-answer an approval from these hooks (use pre_tool_call to block
-    # a tool before it reaches approval).
-    #
-    # Kwargs for pre_approval_request:
-    #   command: str, description: str, pattern_key: str, pattern_keys: list[str],
-    #   session_key: str, surface: "cli" | "gateway"
-    # Kwargs for post_approval_response: same as above plus
-    #   choice: "once" | "session" | "always" | "deny" | "timeout"
-    "pre_approval_request",
-    "post_approval_response",
 }
 
 ENTRY_POINTS_GROUP = "hermes_agent.plugins"
@@ -305,7 +283,6 @@ class PluginContext:
         name: str,
         handler: Callable,
         description: str = "",
-        args_hint: str = "",
     ) -> None:
         """Register a slash command (e.g. ``/lcm``) available in CLI and gateway sessions.
 
@@ -315,13 +292,6 @@ class PluginContext:
         Unlike ``register_cli_command()`` (which creates ``hermes <subcommand>``
         terminal commands), this registers in-session slash commands that users
         invoke during a conversation.
-
-        ``args_hint`` is an optional short string (e.g. ``"<file>"`` or
-        ``"dias:7 formato:json"``) used by gateway adapters to surface the
-        command with an argument field — for example Discord's native slash
-        command picker. Plugin commands without ``args_hint`` register as
-        parameterless in Discord and still accept trailing text when invoked
-        as free-form chat.
 
         Names conflicting with built-in commands are rejected with a warning.
         """
@@ -350,7 +320,6 @@ class PluginContext:
             "handler": handler,
             "description": description or "Plugin command",
             "plugin": self.manifest.name,
-            "args_hint": (args_hint or "").strip(),
         }
         logger.debug("Plugin %s registered command: /%s", self.manifest.name, clean)
 
@@ -534,23 +503,10 @@ class PluginManager:
     # Public
     # -----------------------------------------------------------------------
 
-    def discover_and_load(self, force: bool = False) -> None:
-        """Scan all plugin sources and load each plugin found.
-
-        When ``force`` is true, clear cached discovery state first so config
-        changes or newly-added bundled backends become visible in long-lived
-        sessions without requiring a full agent restart.
-        """
-        if self._discovered and not force:
+    def discover_and_load(self) -> None:
+        """Scan all plugin sources and load each plugin found."""
+        if self._discovered:
             return
-        if force:
-            self._plugins.clear()
-            self._hooks.clear()
-            self._plugin_tool_names.clear()
-            self._cli_commands.clear()
-            self._plugin_commands.clear()
-            self._plugin_skills.clear()
-            self._context_engine = None
         self._discovered = True
 
         manifests: List[PluginManifest] = []
@@ -777,30 +733,6 @@ class PluginManager:
                     key, raw_kind, ", ".join(sorted(_VALID_PLUGIN_KINDS)),
                 )
                 kind = "standalone"
-
-            # Auto-coerce user-installed memory providers to kind="exclusive"
-            # so they're routed to plugins/memory discovery instead of being
-            # loaded by the general PluginManager (which has no
-            # register_memory_provider on PluginContext). Mirrors the
-            # heuristic in plugins/memory/__init__.py:_is_memory_provider_dir.
-            # Bundled memory providers are already skipped via skip_names.
-            if kind == "standalone" and "kind" not in data:
-                init_file = plugin_dir / "__init__.py"
-                if init_file.exists():
-                    try:
-                        source_text = init_file.read_text(errors="replace")[:8192]
-                        if (
-                            "register_memory_provider" in source_text
-                            or "MemoryProvider" in source_text
-                        ):
-                            kind = "exclusive"
-                            logger.debug(
-                                "Plugin %s: detected memory provider, "
-                                "treating as kind='exclusive'",
-                                key,
-                            )
-                    except Exception:
-                        pass
 
             return PluginManifest(
                 name=name,
@@ -1064,13 +996,9 @@ def get_plugin_manager() -> PluginManager:
     return _plugin_manager
 
 
-def discover_plugins(force: bool = False) -> None:
-    """Discover and load all plugins.
-
-    Default behavior is idempotent. Pass ``force=True`` to rescan plugin
-    manifests and reload state in the current process.
-    """
-    get_plugin_manager().discover_and_load(force=force)
+def discover_plugins() -> None:
+    """Discover and load all plugins (idempotent)."""
+    get_plugin_manager().discover_and_load()
 
 
 def invoke_hook(hook_name: str, **kwargs: Any) -> List[Any]:
@@ -1088,6 +1016,7 @@ def get_pre_tool_call_block_message(
     task_id: str = "",
     session_id: str = "",
     tool_call_id: str = "",
+    recent_messages: Optional[List[Dict[str, Any]]] = None,
 ) -> Optional[str]:
     """Check ``pre_tool_call`` hooks for a blocking directive.
 
@@ -1107,6 +1036,7 @@ def get_pre_tool_call_block_message(
         task_id=task_id,
         session_id=session_id,
         tool_call_id=tool_call_id,
+        recent_messages=recent_messages or [],
     )
 
     for result in hook_results:
@@ -1121,13 +1051,10 @@ def get_pre_tool_call_block_message(
     return None
 
 
-def _ensure_plugins_discovered(force: bool = False) -> PluginManager:
-    """Return the global manager after ensuring plugin discovery has run.
-
-    Pass ``force=True`` to rescan in the current process.
-    """
+def _ensure_plugins_discovered() -> PluginManager:
+    """Return the global manager after running idempotent plugin discovery."""
     manager = get_plugin_manager()
-    manager.discover_and_load(force=force)
+    manager.discover_and_load()
     return manager
 
 

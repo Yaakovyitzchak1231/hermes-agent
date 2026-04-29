@@ -9,7 +9,6 @@ import { $uiState } from '../app/uiStore.js'
 import { FloatBox } from './appChrome.js'
 import { MaskedPrompt } from './maskedPrompt.js'
 import { ModelPicker } from './modelPicker.js'
-import { OverlayHint } from './overlayControls.js'
 import { ApprovalPrompt, ClarifyPrompt, ConfirmPrompt } from './prompts.js'
 import { SessionPicker } from './sessionPicker.js'
 import { SkillsHub } from './skillsHub.js'
@@ -119,7 +118,7 @@ export function FloatingOverlays({
   return (
     <Box alignItems="flex-start" bottom="100%" flexDirection="column" left={0} position="absolute" right={0}>
       {overlay.picker && (
-        <FloatBox color={ui.theme.color.border}>
+        <FloatBox color={ui.theme.color.bronze}>
           <SessionPicker
             gw={gw}
             onCancel={() => patchOverlayState({ picker: false })}
@@ -130,7 +129,7 @@ export function FloatingOverlays({
       )}
 
       {overlay.modelPicker && (
-        <FloatBox color={ui.theme.color.border}>
+        <FloatBox color={ui.theme.color.bronze}>
           <ModelPicker
             gw={gw}
             onCancel={() => patchOverlayState({ modelPicker: false })}
@@ -142,17 +141,17 @@ export function FloatingOverlays({
       )}
 
       {overlay.skillsHub && (
-        <FloatBox color={ui.theme.color.border}>
+        <FloatBox color={ui.theme.color.bronze}>
           <SkillsHub gw={gw} onClose={() => patchOverlayState({ skillsHub: false })} t={ui.theme} />
         </FloatBox>
       )}
 
       {overlay.pager && (
-        <FloatBox color={ui.theme.color.border}>
+        <FloatBox color={ui.theme.color.bronze}>
           <Box flexDirection="column" paddingX={1} paddingY={1}>
             {overlay.pager.title && (
               <Box justifyContent="center" marginBottom={1}>
-                <Text bold color={ui.theme.color.primary}>
+                <Text bold color={ui.theme.color.gold}>
                   {overlay.pager.title}
                 </Text>
               </Box>
@@ -163,18 +162,18 @@ export function FloatingOverlays({
             ))}
 
             <Box marginTop={1}>
-              <OverlayHint t={ui.theme}>
+              <Text color={ui.theme.color.dim}>
                 {overlay.pager.offset + pagerPageSize < overlay.pager.lines.length
-                  ? `↑↓/jk line · Enter/Space/PgDn page · b/PgUp back · g/G top/bottom · Esc/q close (${Math.min(overlay.pager.offset + pagerPageSize, overlay.pager.lines.length)}/${overlay.pager.lines.length})`
-                  : `end · ↑↓/jk · b/PgUp back · g top · Esc/q close (${overlay.pager.lines.length} lines)`}
-              </OverlayHint>
+                  ? `↑↓/jk line · Enter/Space/PgDn page · b/PgUp back · g/G top/bottom · q close (${Math.min(overlay.pager.offset + pagerPageSize, overlay.pager.lines.length)}/${overlay.pager.lines.length})`
+                  : `end · ↑↓/jk · b/PgUp back · g top · q close (${overlay.pager.lines.length} lines)`}
+              </Text>
             </Box>
           </Box>
         </FloatBox>
       )}
 
       {!!completions.length && (
-        <FloatBox color={ui.theme.color.primary}>
+        <FloatBox color={ui.theme.color.gold}>
           <Box flexDirection="column" width={Math.max(28, cols - 6)}>
             {completions.slice(start, start + viewportSize).map((item, i) => {
               const active = start + i === compIdx
@@ -190,7 +189,7 @@ export function FloatingOverlays({
                     {' '}
                     {item.display}
                   </Text>
-                  {item.meta ? <Text color={ui.theme.color.muted}> {item.meta}</Text> : null}
+                  {item.meta ? <Text color={ui.theme.color.dim}> {item.meta}</Text> : null}
                 </Box>
               )
             })}

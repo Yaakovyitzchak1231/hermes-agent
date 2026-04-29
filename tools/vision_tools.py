@@ -754,15 +754,7 @@ from tools.registry import registry, tool_error
 
 VISION_ANALYZE_SCHEMA = {
     "name": "vision_analyze",
-    "description": (
-        "Inspect an image from a URL, file path, or tool output when you need "
-        "closer detail than what's visible in the conversation. If the user's "
-        "image is already attached to the conversation and you can see it, "
-        "just answer directly — only call this tool for images referenced by "
-        "URL/path, images returned inside other tool results (browser "
-        "screenshots, search thumbnails), or when you need a deeper look at "
-        "a specific region the main model's vision may have missed."
-    ),
+    "description": "Analyze images using AI vision. Provides a comprehensive description and answers a specific question about the image content.",
     "parameters": {
         "type": "object",
         "properties": {

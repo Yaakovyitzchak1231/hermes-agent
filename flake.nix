@@ -36,7 +36,6 @@
 
       imports = [
         ./nix/packages.nix
-        ./nix/overlays.nix
         ./nix/nixosModules.nix
         ./nix/checks.nix
         ./nix/devShell.nix

@@ -28,7 +28,6 @@ import shutil
 from pathlib import Path
 from hermes_constants import get_hermes_home
 from typing import Dict, List, Tuple
-from utils import atomic_replace
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +98,7 @@ def _write_manifest(entries: Dict[str, str]):
                 f.write(data)
                 f.flush()
                 os.fsync(f.fileno())
-            atomic_replace(tmp_path, MANIFEST_FILE)
+            os.replace(tmp_path, MANIFEST_FILE)
         except BaseException:
             try:
                 os.unlink(tmp_path)
@@ -207,25 +206,9 @@ def sync_skills(quiet: bool = False) -> dict:
             # ── New skill — never offered before ──
             try:
                 if dest.exists():
-                    # User already has a skill with the same name — don't overwrite.
-                    # Only baseline in the manifest when the on-disk copy is
-                    # byte-identical to bundled (e.g. a reset that re-syncs, or
-                    # a coincidentally identical install); that case is harmless
-                    # to track. If the copy differs (custom skill, hub-installed,
-                    # or user-edited) skip the manifest write: recording
-                    # bundled_hash there would poison update detection by making
-                    # user_hash != origin_hash read as "user-modified" on every
-                    # subsequent sync, permanently blocking bundled updates.
+                    # User already has a skill with the same name — don't overwrite
                     skipped += 1
-                    if _dir_hash(dest) == bundled_hash:
-                        manifest[skill_name] = bundled_hash
-                    elif not quiet:
-                        print(
-                            f"  ⚠ {skill_name}: bundled version shipped but you "
-                            f"already have a local skill by this name — yours "
-                            f"was kept. Run `hermes skills reset {skill_name}` "
-                            f"to replace it with the bundled version."
-                        )
+                    manifest[skill_name] = bundled_hash
                 else:
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copytree(skill_src, dest)

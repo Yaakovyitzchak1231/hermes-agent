@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { ExternalLink, X, Check } from "lucide-react";
-import { Button, CopyButton, H2, Spinner } from "@nous-research/ui";
+import { ExternalLink, Copy, X, Check, Loader2 } from "lucide-react";
+import { H2 } from "@nous-research/ui";
 import { api, type OAuthProvider, type OAuthStartResponse } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/i18n";
 
@@ -21,12 +22,18 @@ type Phase =
   | "approved"
   | "error";
 
-export function OAuthLoginModal({ provider, onClose, onSuccess }: Props) {
+export function OAuthLoginModal({
+  provider,
+  onClose,
+  onSuccess,
+  onError,
+}: Props) {
   const [phase, setPhase] = useState<Phase>("starting");
   const [start, setStart] = useState<OAuthStartResponse | null>(null);
   const [pkceCode, setPkceCode] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
   const isMounted = useRef(true);
   const pollTimer = useRef<number | null>(null);
   const { t } = useI18n();
@@ -147,6 +154,16 @@ export function OAuthLoginModal({ provider, onClose, onSuccess }: Props) {
     onClose();
   };
 
+  const handleCopyUserCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCodeCopied(true);
+      window.setTimeout(() => isMounted.current && setCodeCopied(false), 1500);
+    } catch {
+      onError("Clipboard write failed");
+    }
+  };
+
   const handleBackdrop = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) handleClose();
   };
@@ -167,15 +184,14 @@ export function OAuthLoginModal({ provider, onClose, onSuccess }: Props) {
       aria-labelledby="oauth-modal-title"
     >
       <div className="relative w-full max-w-md border border-border bg-card shadow-2xl">
-        <Button
-          ghost
-          size="icon"
+        <button
+          type="button"
           onClick={handleClose}
-          className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+          className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
           aria-label={t.common.close}
         >
-          <X />
-        </Button>
+          <X className="h-5 w-5" />
+        </button>
         <div className="p-6 flex flex-col gap-4">
           <div>
             <H2
@@ -198,13 +214,15 @@ export function OAuthLoginModal({ provider, onClose, onSuccess }: Props) {
               )}
           </div>
 
+          {/* ── starting ───────────────────────────────────── */}
           {phase === "starting" && (
             <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground">
-              <Spinner />
+              <Loader2 className="h-4 w-4 animate-spin" />
               {t.oauth.initiatingLogin}
             </div>
           )}
 
+          {/* ── PKCE: paste code ───────────────────────────── */}
           {start?.flow === "pkce" && phase === "awaiting_user" && (
             <>
               <ol className="text-sm space-y-2 list-decimal list-inside text-muted-foreground">
@@ -236,6 +254,7 @@ export function OAuthLoginModal({ provider, onClose, onSuccess }: Props) {
                   <Button
                     onClick={handleSubmitPkceCode}
                     disabled={!pkceCode.trim()}
+                    size="sm"
                   >
                     {t.oauth.submitCode}
                   </Button>
@@ -244,13 +263,15 @@ export function OAuthLoginModal({ provider, onClose, onSuccess }: Props) {
             </>
           )}
 
+          {/* ── PKCE: submitting exchange ──────────────────── */}
           {phase === "submitting" && (
             <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground">
-              <Spinner />
+              <Loader2 className="h-4 w-4 animate-spin" />
               {t.oauth.exchangingCode}
             </div>
           )}
 
+          {/* ── Device code: show code + URL, polling ──────── */}
           {start?.flow === "device_code" && phase === "polling" && (
             <>
               <p className="text-sm text-muted-foreground">
@@ -267,16 +288,27 @@ export function OAuthLoginModal({ provider, onClose, onSuccess }: Props) {
                     ).user_code
                   }
                 </code>
-                <CopyButton
-                  text={
-                    (
-                      start as Extract<
-                        OAuthStartResponse,
-                        { flow: "device_code" }
-                      >
-                    ).user_code
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    handleCopyUserCode(
+                      (
+                        start as Extract<
+                          OAuthStartResponse,
+                          { flow: "device_code" }
+                        >
+                      ).user_code,
+                    )
                   }
-                />
+                  className="text-xs"
+                >
+                  {codeCopied ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </Button>
               </div>
               <a
                 href={
@@ -295,12 +327,13 @@ export function OAuthLoginModal({ provider, onClose, onSuccess }: Props) {
                 {t.oauth.reOpenVerification}
               </a>
               <div className="flex items-center gap-2 text-xs text-muted-foreground border-t border-border pt-3">
-                <Spinner className="text-xs" />
+                <Loader2 className="h-3 w-3 animate-spin" />
                 {t.oauth.waitingAuth}
               </div>
             </>
           )}
 
+          {/* ── approved ───────────────────────────────────── */}
           {phase === "approved" && (
             <div className="flex items-center gap-3 py-6 text-sm text-success">
               <Check className="h-5 w-5" />
@@ -308,16 +341,18 @@ export function OAuthLoginModal({ provider, onClose, onSuccess }: Props) {
             </div>
           )}
 
+          {/* ── error ──────────────────────────────────────── */}
           {phase === "error" && (
             <>
               <div className="border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                 {errorMsg || t.oauth.loginFailed}
               </div>
               <div className="flex justify-end gap-2">
-                <Button outlined onClick={handleClose}>
+                <Button variant="outline" size="sm" onClick={handleClose}>
                   {t.common.close}
                 </Button>
                 <Button
+                  size="sm"
                   onClick={() => {
                     if (start?.session_id) {
                       api.cancelOAuthSession(start.session_id).catch(() => {});

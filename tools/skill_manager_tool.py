@@ -42,12 +42,10 @@ from pathlib import Path
 from hermes_constants import get_hermes_home, display_hermes_home
 from typing import Dict, Any, Optional, Tuple
 
-from utils import atomic_replace
-
 logger = logging.getLogger(__name__)
 
-# Import security scanner — external hub installs always get scanned;
-# agent-created skills only get scanned when skills.guard_agent_created is on.
+# Import security scanner — agent-created skills get the same scrutiny as
+# community hub installs.
 try:
     from tools.skills_guard import scan_skill, should_allow_install, format_scan_report
     _GUARD_AVAILABLE = True
@@ -55,30 +53,9 @@ except ImportError:
     _GUARD_AVAILABLE = False
 
 
-def _guard_agent_created_enabled() -> bool:
-    """Read skills.guard_agent_created from config (default False).
-
-    Off by default because the agent can already execute the same code
-    paths via terminal() with no gate, so the scan adds friction without
-    meaningful security.  Users who want belt-and-suspenders can turn it
-    on via `hermes config set skills.guard_agent_created true`.
-    """
-    try:
-        from hermes_cli.config import load_config
-        cfg = load_config()
-        return bool(cfg.get("skills", {}).get("guard_agent_created", False))
-    except Exception:
-        return False
-
-
 def _security_scan_skill(skill_dir: Path) -> Optional[str]:
-    """Scan a skill directory after write. Returns error string if blocked, else None.
-
-    No-op when skills.guard_agent_created is disabled (the default).
-    """
+    """Scan a skill directory after write. Returns error string if blocked, else None."""
     if not _GUARD_AVAILABLE:
-        return None
-    if not _guard_agent_created_enabled():
         return None
     try:
         result = scan_skill(skill_dir, source="agent-created")
@@ -88,8 +65,7 @@ def _security_scan_skill(skill_dir: Path) -> Optional[str]:
             return f"Security scan blocked this skill ({reason}):\n{report}"
         if allowed is None:
             # "ask" verdict — for agent-created skills this means dangerous
-            # findings were detected.  Surface as an error so the agent can
-            # retry with the flagged content removed.
+            # findings were detected.  Block the skill and include the report.
             report = format_scan_report(result)
             logger.warning("Agent-created skill blocked (dangerous findings): %s", reason)
             return f"Security scan blocked this skill ({reason}):\n{report}"
@@ -311,7 +287,7 @@ def _atomic_write_text(file_path: Path, content: str, encoding: str = "utf-8") -
     try:
         with os.fdopen(fd, "w", encoding=encoding) as f:
             f.write(content)
-        atomic_replace(temp_path, file_path)
+        os.replace(temp_path, file_path)
     except Exception:
         # Clean up temp file on error
         try:

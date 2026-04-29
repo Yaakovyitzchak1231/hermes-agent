@@ -55,7 +55,6 @@ export type TextStyles = {
 export type Styles = {
   readonly textWrap?:
     | 'wrap'
-    | 'wrap-char'
     | 'wrap-trim'
     | 'end'
     | 'middle'

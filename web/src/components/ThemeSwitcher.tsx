@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Palette, Check } from "lucide-react";
-import { Button, ListItem, Typography } from "@nous-research/ui";
+import { Typography } from "@nous-research/ui";
 import { BUILTIN_THEMES, useTheme } from "@/themes";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -11,12 +11,8 @@ import { cn } from "@/lib/utils";
  * glow) so users can preview the palette before committing. User-defined
  * themes from `~/.hermes/dashboard-themes/*.yaml` that aren't in
  * `BUILTIN_THEMES` render without swatches and apply the default palette.
- *
- * When placed at the bottom of a container (e.g. the sidebar rail), pass
- * `dropUp` so the menu opens above the trigger instead of clipping below
- * the viewport.
  */
-export function ThemeSwitcher({ dropUp = false }: ThemeSwitcherProps) {
+export function ThemeSwitcher() {
   const { themeName, availableThemes, setTheme } = useTheme();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -50,34 +46,34 @@ export function ThemeSwitcher({ dropUp = false }: ThemeSwitcherProps) {
 
   return (
     <div ref={wrapperRef} className="relative">
-      <Button
-        ghost
+      <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
-        className="px-2 py-1 normal-case tracking-normal font-normal text-xs text-muted-foreground hover:text-foreground"
+        className={cn(
+          "group relative inline-flex items-center gap-1.5 px-2 py-1 text-xs",
+          "text-muted-foreground hover:text-foreground transition-colors cursor-pointer",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-midground",
+        )}
         title={t.theme?.switchTheme ?? "Switch theme"}
         aria-label={t.theme?.switchTheme ?? "Switch theme"}
         aria-expanded={open}
         aria-haspopup="listbox"
       >
-        <span className="inline-flex items-center gap-1.5">
-          <Palette className="h-3.5 w-3.5" />
-
-          <Typography
-            mondwest
-            className="hidden sm:inline tracking-wide uppercase text-[0.65rem]"
-          >
-            {label}
-          </Typography>
-        </span>
-      </Button>
+        <Palette className="h-3.5 w-3.5" />
+        <Typography
+          mondwest
+          className="hidden sm:inline tracking-wide uppercase text-[0.65rem]"
+        >
+          {label}
+        </Typography>
+      </button>
 
       {open && (
         <div
           role="listbox"
           aria-label={t.theme?.title ?? "Theme"}
           className={cn(
-            "absolute z-50 min-w-[240px]",
-            dropUp ? "left-0 bottom-full mb-1" : "right-0 top-full mt-1",
+            "absolute right-0 top-full mt-1 z-50 min-w-[240px]",
             "border border-current/20 bg-background-base/95 backdrop-blur-sm",
             "shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)]",
           )}
@@ -96,16 +92,20 @@ export function ThemeSwitcher({ dropUp = false }: ThemeSwitcherProps) {
             const preset = BUILTIN_THEMES[th.name];
 
             return (
-              <ListItem
+              <button
                 key={th.name}
-                active={isActive}
+                type="button"
                 role="option"
                 aria-selected={isActive}
                 onClick={() => {
                   setTheme(th.name);
                   close();
                 }}
-                className="gap-3"
+                className={cn(
+                  "flex w-full items-center gap-3 px-3 py-2 text-left transition-colors cursor-pointer",
+                  "hover:bg-midground/10",
+                  isActive ? "text-midground" : "text-midground/60",
+                )}
               >
                 {preset ? (
                   <ThemeSwatch theme={preset.name} />
@@ -133,7 +133,7 @@ export function ThemeSwitcher({ dropUp = false }: ThemeSwitcherProps) {
                     isActive ? "opacity-100" : "opacity-0",
                   )}
                 />
-              </ListItem>
+              </button>
             );
           })}
         </div>
@@ -165,8 +165,4 @@ function PlaceholderSwatch() {
       className="h-4 w-9 shrink-0 border border-dashed border-current/20"
     />
   );
-}
-
-interface ThemeSwitcherProps {
-  dropUp?: boolean;
 }

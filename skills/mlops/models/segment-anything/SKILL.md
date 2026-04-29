@@ -1,6 +1,6 @@
 ---
 name: segment-anything-model
-description: "SAM: zero-shot image segmentation via points, boxes, masks."
+description: Foundation model for image segmentation with zero-shot transfer. Use when you need to segment any object in images using points, boxes, or masks as prompts, or automatically generate all object masks in an image.
 version: 1.0.0
 author: Orchestra Research
 license: MIT
@@ -134,7 +134,6 @@ masks = processor.image_processor.post_process_masks(
 
 ### Model architecture
 
-<!-- ascii-guard-ignore -->
 ```
 SAM Architecture:
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
@@ -145,7 +144,6 @@ SAM Architecture:
    Image Embeddings      Prompt Embeddings         Masks + IoU
    (computed once)       (per prompt)             predictions
 ```
-<!-- ascii-guard-ignore-end -->
 
 ### Model variants
 

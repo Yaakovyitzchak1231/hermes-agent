@@ -76,7 +76,7 @@ Hermes has two entry points: start the terminal UI with `hermes`, or run the gat
 | Set a personality | `/personality [name]` | `/personality [name]` |
 | Retry or undo the last turn | `/retry`, `/undo` | `/retry`, `/undo` |
 | Compress context / check usage | `/compress`, `/usage`, `/insights [--days N]` | `/compress`, `/usage`, `/insights [days]` |
-| Browse skills | `/skills` or `/<skill-name>` | `/<skill-name>` |
+| Browse skills | `/skills` or `/<skill-name>` | `/skills` or `/<skill-name>` |
 | Interrupt current work | `Ctrl+C` or send a new message | `/stop` or send a new message |
 | Platform-specific status | `/platforms` | `/status`, `/sethome` |
 
@@ -157,10 +157,14 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv venv venv --python 3.11
 source venv/bin/activate
 uv pip install -e ".[all,dev]"
-scripts/run_tests.sh
+python -m pytest tests/ -q
 ```
 
-> **RL Training (optional):** The RL/Atropos integration (`environments/`) ships via the `atroposlib` and `tinker` dependencies pulled in by `.[all,dev]` — no submodule setup required.
+> **RL Training (optional):** To work on the RL/Tinker-Atropos integration:
+> ```bash
+> git submodule update --init tinker-atropos
+> uv pip install -e "./tinker-atropos"
+> ```
 
 ---
 
@@ -169,6 +173,7 @@ scripts/run_tests.sh
 - 💬 [Discord](https://discord.gg/NousResearch)
 - 📚 [Skills Hub](https://agentskills.io)
 - 🐛 [Issues](https://github.com/NousResearch/hermes-agent/issues)
+- 💡 [Discussions](https://github.com/NousResearch/hermes-agent/discussions)
 - 🔌 [HermesClaw](https://github.com/AaronWong1999/hermesclaw) — Community WeChat bridge: Run Hermes Agent and OpenClaw on the same WeChat account.
 
 ---

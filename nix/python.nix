@@ -7,7 +7,6 @@
   pyproject-nix,
   pyproject-build-systems,
   stdenv,
-  dependency-groups ? [ "all" ],
 }:
 let
   workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./..; };
@@ -97,5 +96,5 @@ let
       ]);
 in
 pythonSet.mkVirtualEnv "hermes-agent-env" {
-  hermes-agent = dependency-groups;
+  hermes-agent = [ "all" ];
 }

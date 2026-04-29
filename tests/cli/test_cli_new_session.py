@@ -33,6 +33,7 @@ class _FakeAgent:
         self._todo_store.write(
             [{"id": "t1", "content": "unfinished task", "status": "in_progress"}]
         )
+        self.flush_memories = MagicMock()
         self.commit_memory_session = MagicMock()
         self._invalidate_system_prompt = MagicMock()
 
@@ -156,6 +157,7 @@ def test_new_command_creates_real_fresh_session_and_resets_agent_state(tmp_path)
     assert cli.agent._todo_store.read() == []
     assert cli.session_start > old_session_start
     assert cli.agent.session_start == cli.session_start
+    cli.agent.flush_memories.assert_called_once_with([{"role": "user", "content": "hello"}])
     cli.agent._invalidate_system_prompt.assert_called_once()
 
 

@@ -6,8 +6,6 @@ import type { SessionListItem, SessionListResponse } from '../gatewayTypes.js'
 import { asRpcResult, rpcErrorMessage } from '../lib/rpc.js'
 import type { Theme } from '../theme.js'
 
-import { OverlayHint, useOverlayKeys, windowOffset } from './overlayControls.js'
-
 const VISIBLE = 15
 const MIN_WIDTH = 60
 const MAX_WIDTH = 120
@@ -35,10 +33,8 @@ export function SessionPicker({ gw, onCancel, onSelect, t }: SessionPickerProps)
   const { stdout } = useStdout()
   const width = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, (stdout?.columns ?? 80) - 6))
 
-  useOverlayKeys({ onClose: onCancel })
-
   useEffect(() => {
-    gw.request<SessionListResponse>('session.list', { limit: 200 })
+    gw.request<SessionListResponse>('session.list', { limit: 20 })
       .then(raw => {
         const r = asRpcResult<SessionListResponse>(raw)
 
@@ -60,6 +56,10 @@ export function SessionPicker({ gw, onCancel, onSelect, t }: SessionPickerProps)
   }, [gw])
 
   useInput((ch, key) => {
+    if (key.escape) {
+      return onCancel()
+    }
+
     if (key.upArrow && sel > 0) {
       setSel(s => s - 1)
     }
@@ -80,14 +80,14 @@ export function SessionPicker({ gw, onCancel, onSelect, t }: SessionPickerProps)
   })
 
   if (loading) {
-    return <Text color={t.color.muted}>loading sessions…</Text>
+    return <Text color={t.color.dim}>loading sessions…</Text>
   }
 
   if (err) {
     return (
       <Box flexDirection="column">
         <Text color={t.color.label}>error: {err}</Text>
-        <OverlayHint t={t}>Esc/q cancel</OverlayHint>
+        <Text color={t.color.dim}>Esc to cancel</Text>
       </Box>
     )
   }
@@ -95,58 +95,53 @@ export function SessionPicker({ gw, onCancel, onSelect, t }: SessionPickerProps)
   if (!items.length) {
     return (
       <Box flexDirection="column">
-        <Text color={t.color.muted}>no previous sessions</Text>
-        <OverlayHint t={t}>Esc/q cancel</OverlayHint>
+        <Text color={t.color.dim}>no previous sessions</Text>
+        <Text color={t.color.dim}>Esc to cancel</Text>
       </Box>
     )
   }
 
-  const offset = windowOffset(items.length, sel, VISIBLE)
+  const off = Math.max(0, Math.min(sel - Math.floor(VISIBLE / 2), items.length - VISIBLE))
 
   return (
     <Box flexDirection="column" width={width}>
-      <Text bold color={t.color.accent}>
+      <Text bold color={t.color.amber}>
         Resume Session
       </Text>
 
-      {offset > 0 && <Text color={t.color.muted}> ↑ {offset} more</Text>}
+      {off > 0 && <Text color={t.color.dim}> ↑ {off} more</Text>}
 
-      {items.slice(offset, offset + VISIBLE).map((s, vi) => {
-        const i = offset + vi
+      {items.slice(off, off + VISIBLE).map((s, vi) => {
+        const i = off + vi
         const selected = sel === i
 
         return (
           <Box key={s.id}>
-            <Text bold={selected} color={selected ? t.color.accent : t.color.muted} inverse={selected}>
+            <Text bold={selected} color={selected ? t.color.amber : t.color.dim} inverse={selected}>
               {selected ? '▸ ' : '  '}
             </Text>
 
             <Box width={30}>
-              <Text bold={selected} color={selected ? t.color.accent : t.color.muted} inverse={selected}>
+              <Text bold={selected} color={selected ? t.color.amber : t.color.dim} inverse={selected}>
                 {String(i + 1).padStart(2)}. [{s.id}]
               </Text>
             </Box>
 
             <Box width={30}>
-              <Text bold={selected} color={selected ? t.color.accent : t.color.muted} inverse={selected}>
+              <Text bold={selected} color={selected ? t.color.amber : t.color.dim} inverse={selected}>
                 ({s.message_count} msgs, {age(s.started_at)}, {s.source || 'tui'})
               </Text>
             </Box>
 
-            <Text
-              bold={selected}
-              color={selected ? t.color.accent : t.color.muted}
-              inverse={selected}
-              wrap="truncate-end"
-            >
+            <Text bold={selected} color={selected ? t.color.amber : t.color.dim} inverse={selected} wrap="truncate-end">
               {s.title || s.preview || '(untitled)'}
             </Text>
           </Box>
         )
       })}
 
-      {offset + VISIBLE < items.length && <Text color={t.color.muted}> ↓ {items.length - offset - VISIBLE} more</Text>}
-      <OverlayHint t={t}>↑/↓ select · Enter resume · 1-9 quick · Esc/q cancel</OverlayHint>
+      {off + VISIBLE < items.length && <Text color={t.color.dim}> ↓ {items.length - off - VISIBLE} more</Text>}
+      <Text color={t.color.dim}>↑/↓ select · Enter resume · 1-9 quick · Esc cancel</Text>
     </Box>
   )
 }

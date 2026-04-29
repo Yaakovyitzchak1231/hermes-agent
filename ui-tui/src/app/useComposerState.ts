@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { useStdin, withInkSuspended } from '@hermes/ink'
+import { useStdin } from '@hermes/ink'
 import { useStore } from '@nanostores/react'
 import { useCallback, useMemo, useState } from 'react'
 
@@ -14,7 +14,6 @@ import { useCompletion } from '../hooks/useCompletion.js'
 import { useInputHistory } from '../hooks/useInputHistory.js'
 import { useQueue } from '../hooks/useQueue.js'
 import { isUsableClipboardText, readClipboardText } from '../lib/clipboard.js'
-import { resolveEditor } from '../lib/editor.js'
 import { readOsc52Clipboard } from '../lib/osc52.js'
 import { isRemoteShellSession } from '../lib/terminalSetup.js'
 import { pasteTokenLabel, stripTrailingPasteNewlines } from '../lib/text.js'
@@ -110,18 +109,8 @@ export function useComposerState({
   const isBlocked = useStore($isBlocked)
   const { querier } = useStdin() as { querier: Parameters<typeof readOsc52Clipboard>[0] }
 
-  const {
-    queueRef,
-    queueEditRef,
-    queuedDisplay,
-    queueEditIdx,
-    enqueue,
-    dequeue,
-    removeQ,
-    replaceQ,
-    setQueueEdit,
-    syncQueue
-  } = useQueue()
+  const { queueRef, queueEditRef, queuedDisplay, queueEditIdx, enqueue, dequeue, replaceQ, setQueueEdit, syncQueue } =
+    useQueue()
 
   const { historyRef, historyIdx, setHistoryIdx, historyDraftRef, pushHistory } = useInputHistory()
   const { completions, compIdx, setCompIdx, compReplace } = useCompletion(input, isBlocked, gw)
@@ -264,36 +253,26 @@ export function useComposerState({
     [handleResolvedPaste, onClipboardPaste, querier]
   )
 
-  const openEditor = useCallback(async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'hermes-'))
-    const file = join(dir, 'prompt.md')
-    const [cmd, ...args] = resolveEditor()
+  const openEditor = useCallback(() => {
+    const editor = process.env.EDITOR || process.env.VISUAL || 'vi'
+    const file = join(mkdtempSync(join(tmpdir(), 'hermes-')), 'prompt.md')
 
     writeFileSync(file, [...inputBuf, input].join('\n'))
+    process.stdout.write('\x1b[?1049l')
+    const { status: code } = spawnSync(editor, [file], { stdio: 'inherit' })
+    process.stdout.write('\x1b[?1049h\x1b[2J\x1b[H')
 
-    let exitCode: null | number = null
-
-    await withInkSuspended(async () => {
-      exitCode = spawnSync(cmd!, [...args, file], { stdio: 'inherit' }).status
-    })
-
-    try {
-      if (exitCode !== 0) {
-        return
-      }
-
+    if (code === 0) {
       const text = readFileSync(file, 'utf8').trimEnd()
 
-      if (!text) {
-        return
+      if (text) {
+        setInput('')
+        setInputBuf([])
+        submitRef.current(text)
       }
-
-      setInput('')
-      setInputBuf([])
-      submitRef.current(text)
-    } finally {
-      rmSync(dir, { force: true, recursive: true })
     }
+
+    rmSync(file, { force: true })
   }, [input, inputBuf, submitRef])
 
   const actions = useMemo(
@@ -304,7 +283,6 @@ export function useComposerState({
       handleTextPaste,
       openEditor,
       pushHistory,
-      removeQueue: removeQ,
       replaceQueue: replaceQ,
       setCompIdx,
       setHistoryIdx,
@@ -321,7 +299,6 @@ export function useComposerState({
       handleTextPaste,
       openEditor,
       pushHistory,
-      removeQ,
       replaceQ,
       setCompIdx,
       setHistoryIdx,

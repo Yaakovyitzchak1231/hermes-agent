@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Brain, Eye, Gauge, Lightbulb, Wrench } from "lucide-react";
-import { Spinner } from "@nous-research/ui";
+import {
+  Brain,
+  Eye,
+  Gauge,
+  Lightbulb,
+  Wrench,
+  Loader2,
+} from "lucide-react";
 import { api } from "@/lib/api";
 import type { ModelInfoResponse } from "@/lib/api";
 import { formatTokenCount } from "@/lib/format";
@@ -12,10 +18,7 @@ interface ModelInfoCardProps {
   refreshKey?: number;
 }
 
-export function ModelInfoCard({
-  currentModel,
-  refreshKey = 0,
-}: ModelInfoCardProps) {
+export function ModelInfoCard({ currentModel, refreshKey = 0 }: ModelInfoCardProps) {
   const [info, setInfo] = useState<ModelInfoResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const lastFetchKeyRef = useRef("");
@@ -37,7 +40,7 @@ export function ModelInfoCard({
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
-        <Spinner className="text-xs" />
+        <Loader2 className="h-3 w-3 animate-spin" />
         Loading model info…
       </div>
     );
@@ -50,6 +53,7 @@ export function ModelInfoCard({
 
   return (
     <div className="border border-border/60 bg-muted/30 px-3 py-2.5 space-y-2">
+      {/* Context window */}
       <div className="flex items-center gap-4 text-xs">
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <Gauge className="h-3.5 w-3.5" />
@@ -64,13 +68,12 @@ export function ModelInfoCard({
               (override — auto: {formatTokenCount(info.auto_context_length)})
             </span>
           ) : (
-            <span className="text-muted-foreground/60 text-[10px]">
-              auto-detected
-            </span>
+            <span className="text-muted-foreground/60 text-[10px]">auto-detected</span>
           )}
         </div>
       </div>
 
+      {/* Max output */}
       {hasCaps && caps.max_output_tokens && caps.max_output_tokens > 0 && (
         <div className="flex items-center gap-4 text-xs">
           <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -83,6 +86,7 @@ export function ModelInfoCard({
         </div>
       )}
 
+      {/* Capability badges */}
       {hasCaps && (
         <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
           {caps.supports_tools && (

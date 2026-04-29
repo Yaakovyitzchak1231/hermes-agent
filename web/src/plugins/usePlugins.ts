@@ -10,12 +10,7 @@
 import { useState, useEffect, useRef } from "react";
 import { api } from "@/lib/api";
 import type { PluginManifest, RegisteredPlugin } from "./types";
-import {
-  getPluginComponent,
-  onPluginRegistered,
-  notifyPluginRegistry,
-  setPluginLoadError,
-} from "./registry";
+import { getPluginComponent, onPluginRegistered } from "./registry";
 
 export function usePlugins() {
   const [manifests, setManifests] = useState<PluginManifest[]>([]);
@@ -38,8 +33,6 @@ export function usePlugins() {
   useEffect(() => {
     if (manifests.length === 0) return;
 
-    const injectedScripts: HTMLScriptElement[] = [];
-
     for (const manifest of manifests) {
       // Inject CSS if specified.
       if (manifest.css) {
@@ -52,49 +45,23 @@ export function usePlugins() {
         }
       }
 
-      // Load JS bundle. In dev, cache-bust so Vite HMR can clear the
-      // in-memory registry while the browser would otherwise never
-      // re-execute a previously cached <script> URL.
-      const baseUrl = `/dashboard-plugins/${manifest.name}/${manifest.entry}`;
-      const scriptSrc = import.meta.env.DEV
-        ? `${baseUrl}?hermes_dv=${Date.now()}`
-        : baseUrl;
-      if (!import.meta.env.DEV) {
-        if (loadedScripts.current.has(baseUrl)) continue;
-        loadedScripts.current.add(baseUrl);
-      }
+      // Load JS bundle.
+      const jsUrl = `/dashboard-plugins/${manifest.name}/${manifest.entry}`;
+      if (loadedScripts.current.has(jsUrl)) continue;
+      loadedScripts.current.add(jsUrl);
 
       const script = document.createElement("script");
-      script.setAttribute("data-hermes-plugin", manifest.name);
-      script.src = scriptSrc;
+      script.src = jsUrl;
       script.async = true;
       script.onerror = () => {
-        setPluginLoadError(manifest.name, "LOAD_FAILED");
-        console.warn(
-          `[plugins] Failed to load ${manifest.name} from ${scriptSrc} (open Network tab)`,
-        );
-      };
-      script.onload = () => {
-        notifyPluginRegistry();
-        queueMicrotask(() => {
-          if (getPluginComponent(manifest.name)) return;
-          setPluginLoadError(manifest.name, "NO_REGISTER");
-        });
+        console.warn(`[plugins] Failed to load ${manifest.name} from ${jsUrl}`);
       };
       document.body.appendChild(script);
-      injectedScripts.push(script);
     }
 
     // Give plugins a moment to load and register, then stop loading state.
     const timeout = setTimeout(() => setLoading(false), 2000);
-    return () => {
-      clearTimeout(timeout);
-      if (import.meta.env.DEV) {
-        for (const el of injectedScripts) {
-          el.remove();
-        }
-      }
-    };
+    return () => clearTimeout(timeout);
   }, [manifests]);
 
   // Listen for plugin registrations and resolve them against manifests.

@@ -272,7 +272,7 @@ class TestCommandBypassActiveSession:
 # Tests: non-bypass-set commands (no dedicated Level-2 handler) also bypass
 # instead of interrupting + being discarded.  Regression for the Discord
 # ghost-slash-command bug where /model, /reasoning, /voice, /insights, /title,
-# /resume, /retry, /undo, /compress, /usage, /reload-mcp,
+# /resume, /retry, /undo, /compress, /usage, /provider, /reload-mcp,
 # /sethome, /reset silently interrupted the running agent.
 # ---------------------------------------------------------------------------
 
@@ -298,6 +298,7 @@ class TestAllResolvableCommandsBypassGuard:
             ("/undo", "undo"),
             ("/compress", "compress"),
             ("/usage", "usage"),
+            ("/provider", "provider"),
             ("/reload-mcp", "reload-mcp"),
             ("/sethome", "sethome"),
         ],
@@ -325,7 +326,7 @@ class TestAllResolvableCommandsBypassGuard:
 
         for cmd in (
             "model", "reasoning", "personality", "voice", "insights", "title",
-            "resume", "retry", "undo", "compress", "usage",
+            "resume", "retry", "undo", "compress", "usage", "provider",
             "reload-mcp", "sethome", "reset",
         ):
             assert should_bypass_active_session(cmd) is True, (

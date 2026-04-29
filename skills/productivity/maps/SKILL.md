@@ -1,6 +1,11 @@
 ---
 name: maps
-description: "Geocode, POIs, routes, timezones via OpenStreetMap/OSRM."
+description: >
+  Location intelligence — geocode a place, reverse-geocode coordinates,
+  find nearby places (46 POI categories), driving/walking/cycling
+  distance + time, turn-by-turn directions, timezone lookup, bounding
+  box + area for a named place, and POI search within a rectangle.
+  Uses OpenStreetMap + Overpass + OSRM. Free, no API key.
 version: 1.2.0
 author: Mibayy
 license: MIT

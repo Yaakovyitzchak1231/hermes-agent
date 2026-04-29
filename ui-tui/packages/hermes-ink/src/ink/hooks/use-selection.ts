@@ -9,9 +9,9 @@ import { type FocusMove, type SelectionState, shiftAnchor } from '../selection.j
  * Returns no-op functions when fullscreen mode is disabled.
  */
 export function useSelection(): {
-  copySelection: () => Promise<string>
+  copySelection: () => string
   /** Copy without clearing the highlight (for copy-on-select). */
-  copySelectionNoClear: () => Promise<string>
+  copySelectionNoClear: () => string
   clearSelection: () => void
   hasSelection: () => boolean
   /** Read the raw mutable selection state (for drag-to-scroll). */
@@ -35,8 +35,6 @@ export function useSelection(): {
    *  replaces the old SGR-7 inverse so syntax highlighting stays readable
    *  under selection). Call once on mount + whenever theme changes. */
   setSelectionBgColor: (color: string) => void
-  /** Monotonic counter incremented on every selection mutation. */
-  version: () => number
 } {
   // Look up the Ink instance via stdout — same pattern as instances map.
   // StdinContext is available (it's always provided), and the Ink instance
@@ -50,8 +48,8 @@ export function useSelection(): {
   return useMemo(() => {
     if (!ink) {
       return {
-        copySelection: async () => '',
-        copySelectionNoClear: async () => '',
+        copySelection: () => '',
+        copySelectionNoClear: () => '',
         clearSelection: () => {},
         hasSelection: () => false,
         getState: () => null,
@@ -60,8 +58,7 @@ export function useSelection(): {
         shiftSelection: () => {},
         moveFocus: () => {},
         captureScrolledRows: () => {},
-        setSelectionBgColor: () => {},
-        version: () => 0
+        setSelectionBgColor: () => {}
       }
     }
 
@@ -76,8 +73,7 @@ export function useSelection(): {
       shiftSelection: (dRow, minRow, maxRow) => ink.shiftSelectionForScroll(dRow, minRow, maxRow),
       moveFocus: (move: FocusMove) => ink.moveSelectionFocus(move),
       captureScrolledRows: (firstRow, lastRow, side) => ink.captureScrolledRows(firstRow, lastRow, side),
-      setSelectionBgColor: (color: string) => ink.setSelectionBgColor(color),
-      version: () => ink.getSelectionVersion()
+      setSelectionBgColor: (color: string) => ink.setSelectionBgColor(color)
     }
   }, [ink])
 }

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextvars
 import logging
 import os
 from collections import defaultdict, deque
@@ -61,7 +60,7 @@ from acp_adapter.events import (
     make_tool_progress_cb,
 )
 from acp_adapter.permissions import make_approval_callback
-from acp_adapter.session import SessionManager, SessionState, _expand_acp_enabled_toolsets
+from acp_adapter.session import SessionManager, SessionState
 
 logger = logging.getLogger(__name__)
 
@@ -288,11 +287,7 @@ class HermesACPAgent(acp.Agent):
         try:
             from model_tools import get_tool_definitions
 
-            enabled_toolsets = _expand_acp_enabled_toolsets(
-                getattr(state.agent, "enabled_toolsets", None) or ["hermes-acp"],
-                mcp_server_names=[server.name for server in mcp_servers],
-            )
-            state.agent.enabled_toolsets = enabled_toolsets
+            enabled_toolsets = getattr(state.agent, "enabled_toolsets", None) or ["hermes-acp"]
             disabled_toolsets = getattr(state.agent, "disabled_toolsets", None)
             state.agent.tools = get_tool_definitions(
                 enabled_toolsets=enabled_toolsets,
@@ -575,22 +570,6 @@ class HermesACPAgent(acp.Agent):
 
         def _run_agent() -> dict:
             nonlocal previous_approval_cb, previous_interactive
-            # Bind HERMES_SESSION_KEY for this session so per-session caches
-            # (e.g. the interactive sudo password cache in tools.terminal_tool)
-            # scope to the ACP session rather than leaking across sessions
-            # that land on the same reused executor thread. This call runs
-            # inside a contextvars.copy_context() below, so the ContextVar
-            # write is isolated from other concurrent ACP sessions.
-            try:
-                from gateway.session_context import (
-                    clear_session_vars,
-                    set_session_vars,
-                )
-                session_tokens = set_session_vars(session_key=session_id)
-            except Exception:
-                session_tokens = None
-                clear_session_vars = None  # type: ignore[assignment]
-                logger.debug("Could not set ACP session context", exc_info=True)
             if approval_cb:
                 try:
                     from tools import terminal_tool as _terminal_tool
@@ -624,19 +603,9 @@ class HermesACPAgent(acp.Agent):
                         _terminal_tool.set_approval_callback(previous_approval_cb)
                     except Exception:
                         logger.debug("Could not restore approval callback", exc_info=True)
-                if session_tokens is not None and clear_session_vars is not None:
-                    try:
-                        clear_session_vars(session_tokens)
-                    except Exception:
-                        logger.debug("Could not clear ACP session context", exc_info=True)
 
         try:
-            # Wrap the executor call in a fresh copy of the current context so
-            # concurrent ACP sessions on the shared ThreadPoolExecutor don't
-            # stomp on each other's ContextVar writes (HERMES_SESSION_KEY in
-            # particular — used by the interactive sudo password cache scope).
-            ctx = contextvars.copy_context()
-            result = await loop.run_in_executor(_executor, ctx.run, _run_agent)
+            result = await loop.run_in_executor(_executor, _run_agent)
         except Exception:
             logger.exception("Executor error for session %s", session_id)
             return PromptResponse(stop_reason="end_turn")
@@ -785,9 +754,7 @@ class HermesACPAgent(acp.Agent):
     def _cmd_tools(self, args: str, state: SessionState) -> str:
         try:
             from model_tools import get_tool_definitions
-            toolsets = _expand_acp_enabled_toolsets(
-                getattr(state.agent, "enabled_toolsets", None) or ["hermes-acp"]
-            )
+            toolsets = getattr(state.agent, "enabled_toolsets", None) or ["hermes-acp"]
             tools = get_tool_definitions(enabled_toolsets=toolsets, quiet_mode=True)
             if not tools:
                 return "No tools available."

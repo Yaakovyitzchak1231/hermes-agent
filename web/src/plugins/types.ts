@@ -1,7 +1,5 @@
 /** Types for the dashboard plugin system. */
 
-import type { ComponentType } from "react";
-
 export interface PluginManifest {
   name: string;
   label: string;
@@ -10,15 +8,8 @@ export interface PluginManifest {
   version: string;
   tab: {
     path: string;
-    /** "end", "after:<pathSegment>", "before:<pathSegment>" (e.g. "after:skills" → after `/skills`) */
-    position?: string;
-    /** When set to a built-in route path, this plugin replaces that page instead of adding a new tab. */
-    override?: string;
-    /** When true, the plugin may register without a sidebar tab (slot-only, etc.). */
-    hidden?: boolean;
+    position: string;  // "end", "after:<tab>", "before:<tab>"
   };
-  /** Declared for discovery; actual slots use registerSlot in the plugin bundle. */
-  slots?: string[];
   entry: string;
   css?: string | null;
   has_api: boolean;
@@ -27,5 +18,5 @@ export interface PluginManifest {
 
 export interface RegisteredPlugin {
   manifest: PluginManifest;
-  component: ComponentType;
+  component: React.ComponentType;
 }

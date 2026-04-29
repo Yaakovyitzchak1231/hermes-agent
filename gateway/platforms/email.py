@@ -28,7 +28,6 @@ from email.header import decode_header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
-from email.utils import formatdate
 from email import encoders
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -505,7 +504,6 @@ class EmailAdapter(BasePlatformAdapter):
             msg["In-Reply-To"] = original_msg_id
             msg["References"] = original_msg_id
 
-        msg["Date"] = formatdate(localtime=True)
         msg_id = f"<hermes-{uuid.uuid4().hex[:12]}@{self._address.split('@')[1]}>"
         msg["Message-ID"] = msg_id
 
@@ -547,7 +545,6 @@ class EmailAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         file_name: Optional[str] = None,
         reply_to: Optional[str] = None,
-        **kwargs,
     ) -> SendResult:
         """Send a file as an email attachment."""
         try:
@@ -588,7 +585,6 @@ class EmailAdapter(BasePlatformAdapter):
             msg["In-Reply-To"] = original_msg_id
             msg["References"] = original_msg_id
 
-        msg["Date"] = formatdate(localtime=True)
         msg_id = f"<hermes-{uuid.uuid4().hex[:12]}@{self._address.split('@')[1]}>"
         msg["Message-ID"] = msg_id
 
