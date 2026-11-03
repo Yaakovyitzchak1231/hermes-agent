@@ -109,6 +109,7 @@ def test_cli_run_delegates_to_the_standalone_server(monkeypatch):
     serve.assert_called_once_with(host="127.0.0.1", port=9123, token="fake-token")
 
 
+@pytest.mark.live_system_guard_bypass
 @pytest.mark.parametrize(
     "flag,output", [("--help", "--host"), ("--check", "Hermes AG-UI check OK")]
 )
@@ -128,6 +129,7 @@ def test_module_flags_exit_without_a_tty_or_server(flag, output):
     assert "Starting Hermes AG-UI adapter" not in result.stderr
 
 
+@pytest.mark.live_system_guard_bypass
 @pytest.mark.platforms("posix")
 @pytest.mark.parametrize("web_concurrency", [None, "2", "bad"])
 def test_headless_module_serves_health_and_enforces_token(web_concurrency):
@@ -194,6 +196,7 @@ def test_headless_module_serves_health_and_enforces_token(web_concurrency):
         assert "Traceback" not in stderr
 
 
+@pytest.mark.live_system_guard_bypass
 def test_network_bind_without_token_fails_before_serving(monkeypatch):
     monkeypatch.delenv("HERMES_AGUI_SESSION_TOKEN", raising=False)
     env = os.environ.copy()

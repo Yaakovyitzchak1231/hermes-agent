@@ -18,6 +18,7 @@ from tests.plugins.platforms.agui.test_modernization_probe import body, config_f
 from tests.waiting import wait_until
 
 
+@pytest.mark.live_system_guard_bypass
 @pytest.mark.platforms("posix")
 @pytest.mark.parametrize("launcher", ["main", "module", "function"])
 def test_entry_points_use_configured_provider_and_discover_plugin_tools(peer, launcher):
