@@ -1,0 +1,24 @@
+name: agui-platform
+label: AG-UI
+kind: platform
+version: 1.0.0
+description: >
+  AG-UI protocol support for Hermes Agent - exposes the agent over the open
+  AG-UI HTTP/SSE event protocol used by CopilotKit and other agent frontends.
+
+  `hermes agui` (or the `agui` gateway platform) serves a FastAPI app that
+  accepts AG-UI `RunAgentInput` requests and streams AG-UI events. Assistant
+  text, reasoning, and server-tool calls stream live; client-side ("frontend")
+  tools park the run until the client posts the matching result, and approvals
+  use the native interrupt/resume exchange.
+
+  Security is fail-closed: with no `HERMES_AGUI_SESSION_TOKEN` the server binds
+  127.0.0.1 only, and a non-loopback bind without a usable token refuses to
+  start. Listener settings live under `platforms.agui` in config.yaml.
+author: Nous Research
+requires_env: []
+optional_env:
+  - name: HERMES_AGUI_SESSION_TOKEN
+    description: "Bearer token every AG-UI request must present (except /health). Required for a non-loopback bind; optional on loopback as defense-in-depth."
+    prompt: "AG-UI session token (or empty for loopback-only)"
+    password: true

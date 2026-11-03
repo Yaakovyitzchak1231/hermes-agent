@@ -223,6 +223,17 @@ dependencies = [
   "nemo-relay>=0.10,<0.11; ((sys_platform == 'darwin' and platform_machine == 'arm64') or (sys_platform == 'linux' and platform_machine == 'x86_64' and 'android' not in platform_release) or (sys_platform == 'linux' and platform_machine == 'aarch64' and 'android' not in platform_release) or (sys_platform == 'win32' and platform_machine == 'AMD64') or (sys_platform == 'win32' and platform_machine == 'ARM64')) and python_version >= '3.14'",]
 
 [project.optional-dependencies]
+# AG-UI platform (plugins/platforms/agui, `hermes agui`). A platform extra, so
+# it stays out of [all] and resolves on first use. fastapi/uvicorn are only
+# core deps on Python >= 3.14 and otherwise live in [web]; the extra carries
+# them so `pm ensure agui` works on a lean install. starlette pin matches
+# [web] (CVE-2026-48710).
+agui = [
+  "ag-ui-protocol==0.1.19",
+  "fastapi==0.133.1",
+  "uvicorn==0.54.0",
+  "starlette==1.9.0",
+]
 # High-performance event loop — uvloop replaces the stdlib asyncio loop with
 # a libuv-backed implementation for ~2-4x throughput on uvicorn.  Gated as an
 # optional extra because libuv's ./configure does not run on Android/Termux
