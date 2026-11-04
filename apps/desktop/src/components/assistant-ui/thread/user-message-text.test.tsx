@@ -74,3 +74,61 @@ describe('a sent reference renders as the chip the composer showed', () => {
     expect(fence?.className).not.toContain('overflow-x-auto')
   })
 })
+describe('blockquote rendering in sent user bubbles', () => {
+  it('para\n> quoted line\n> more\nafter', () => {
+    render(<UserMessageText text={'para\n> quoted line\n> more\nafter'} />)
+
+    // The quote should be rendered
+    const quote = document.querySelector('[data-slot="aui_user-quote"]')
+    expect(quote).not.toBeNull()
+    expect(quote?.textContent).toBe('quoted line\nmore')
+
+    // para before
+    expect(document.querySelector('[data-slot="aui_user-inline-text"]')?.textContent).toContain('para')
+    // after — inline-text spans inside the quote block itself are excluded
+    const inlineTexts = Array.from(document.querySelectorAll('[data-slot="aui_user-inline-text"]')).filter(
+      el => !el.closest('[data-slot="aui_user-quote"]')
+    )
+
+    expect(inlineTexts[1]?.textContent).toContain('after')
+  })
+
+  it('quote with code span inside', () => {
+    render(<UserMessageText text={'before\n> use `npm test`\nafter'} />)
+
+    const quote = document.querySelector('[data-slot="aui_user-quote"]')
+    expect(quote).not.toBeNull()
+    expect(quote?.textContent).toBe('use npm test')
+
+    // Should have both inline-text and inline-code in the quote
+    const inlineCode = document.querySelector('[data-slot="aui_user-inline-code"]')
+    expect(inlineCode).not.toBeNull()
+    expect(inlineCode?.textContent).toBe('npm test')
+  })
+
+  it('>5 items stays as prose (no quote)', () => {
+    render(<UserMessageText text=">5 items are not quotes" />)
+
+    // Should NOT create a quote
+    const quote = document.querySelector('[data-slot="aui_user-quote"]')
+    expect(quote).toBeNull()
+
+    // Should be inline text
+    const inlineText = document.querySelector('[data-slot="aui_user-inline-text"]')
+    expect(inlineText).not.toBeNull()
+    expect(inlineText?.textContent).toBe('>5 items are not quotes')
+  })
+
+  it('fences keep precedence, >x inside fence stays fence', () => {
+    render(<UserMessageText text={">x\n```\n> x inside fence\n```\n> y after"} />)
+
+    const fence = document.querySelector('[data-slot="aui_user-fence"]')
+    expect(fence).not.toBeNull()
+    expect(fence?.textContent).toContain('> x inside fence')
+
+    // The > y after should be a quote
+    const quote = document.querySelector('[data-slot="aui_user-quote"]')
+    expect(quote).not.toBeNull()
+    expect(quote?.textContent).toBe('y after')
+  })
+})

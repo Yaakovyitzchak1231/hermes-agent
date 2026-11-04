@@ -1,10 +1,11 @@
 import type { FC } from 'react'
 import { Fragment, useMemo } from 'react'
 
-import { DirectiveContent } from '@/components/assistant-ui/directive-text'
-import { referenceRe } from '@/components/assistant-ui/reference-kinds'
 import { cn } from '@/lib/utils'
 import { useForcedTextDirection } from '@/store/text-direction'
+
+import { DirectiveContent } from '../directive-text'
+import { referenceRe } from '../reference-kinds'
 
 // User messages should render the bare-minimum of markdown: backtick `code`
 // spans and ``` fenced blocks. We deliberately don't pull in the full
@@ -26,6 +27,11 @@ interface InlineSegment {
   text: string
 }
 
+interface QuoteSegment {
+  kind: 'quote'
+  lines: string[]
+}
+
 interface InlineCodeSegment {
   kind: 'inline-code'
   code: string
@@ -36,10 +42,13 @@ interface InlineTextSegment {
   text: string
 }
 
-type TopSegment = FenceSegment | InlineSegment
+type TopSegment = FenceSegment | InlineSegment | QuoteSegment
 type InlineNode = InlineCodeSegment | InlineTextSegment
 
 const FENCE_RE = /```([^\n`]*)\n([\s\S]*?)```/g
+
+// A quote line is `>` alone or `>` followed by a space — `>5 items` is prose.
+const QUOTE_LINE_RE = /^>( |$)/
 
 // Greedy backtick run length so ``code with `backticks` inside`` works.
 const INLINE_CODE_RE = /(`+)([^`\n][\s\S]*?)\1/g
@@ -92,6 +101,55 @@ function splitFences(text: string): TopSegment[] {
   return segments
 }
 
+/** Splits one inline chunk into quote and inline runs, line by line. Fences are
+ *  already extracted, so a `> x` line here is always a real quote line. */
+function splitQuotes(text: string): TopSegment[] {
+  const segments: TopSegment[] = []
+  const lines = text.split('\n')
+  let inlineLines: string[] = []
+  let quoteLines: string[] = []
+
+  const flushInline = () => {
+    const joined = inlineLines.join('\n')
+
+    if (joined.length > 0) {
+      segments.push({ kind: 'inline', text: joined })
+    }
+
+    inlineLines = []
+  }
+
+  const flushQuote = () => {
+    if (quoteLines.length > 0) {
+      segments.push({ kind: 'quote', lines: quoteLines })
+    }
+
+    quoteLines = []
+  }
+
+  for (const line of lines) {
+    if (QUOTE_LINE_RE.test(line)) {
+      flushInline()
+      quoteLines.push(line.slice(1).replace(/^ /, ''))
+    } else {
+      flushQuote()
+      inlineLines.push(line)
+    }
+  }
+
+  flushInline()
+  flushQuote()
+
+  return segments
+}
+
+/** Fences win: their bodies are never re-parsed for quotes. */
+function splitTop(text: string): TopSegment[] {
+  return splitFences(text).flatMap(segment =>
+    segment.kind === 'fence' ? [segment] : splitQuotes(segment.text)
+  )
+}
+
 function splitInlineCode(text: string): InlineNode[] {
   const nodes: InlineNode[] = []
   let cursor = 0
@@ -120,7 +178,7 @@ interface UserMessageTextProps {
 }
 
 export const UserMessageText: FC<UserMessageTextProps> = ({ className, text }) => {
-  const top = useMemo(() => splitFences(text), [text])
+  const top = useMemo(() => splitTop(text), [text])
 
   return (
     <span className={cn('block', className)} data-slot="aui_user-message-text">
@@ -134,6 +192,18 @@ export const UserMessageText: FC<UserMessageTextProps> = ({ className, text }) =
             >
               <code className="block whitespace-pre-wrap wrap-anywhere">{segment.code}</code>
             </pre>
+          )
+        }
+
+        if (segment.kind === 'quote') {
+          return (
+            <div
+              className="my-1.5 border-l-2 border-(--ui-stroke-secondary) pl-3 text-foreground/85"
+              data-slot="aui_user-quote"
+              key={`quote-${segmentIndex}`}
+            >
+              <InlineSegmentView text={segment.lines.join('\n')} />
+            </div>
           )
         }
 
