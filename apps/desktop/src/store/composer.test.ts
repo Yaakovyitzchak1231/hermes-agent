@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   $composerAttachments,
+  $composerQuotes,
   $restoredDraftNotice,
   $voiceConversationStartRequest,
   addComposerAttachment,
@@ -12,13 +13,17 @@ import {
   type ComposerAttachment,
   createComposerAttachmentOccurrenceId,
   createComposerAttachmentScope,
+  draftHasQuoteChips,
   freezeComposerTransportPayload,
   mainComposerScope,
   migrateSessionDraft,
+  quoteContextBlocksFromDraft,
+  quoteLabelsFromDraft,
   removeComposerAttachment,
   requestVoiceConversationStart,
   revokeAttachmentPreviewUrls,
   SESSION_DRAFTS_STORAGE_KEY,
+  setComposerQuote,
   setComposerTerminalSelection,
   stashSessionDraft,
   takeSessionDraft,
@@ -450,5 +455,103 @@ describe('freezeComposerTransportPayload', () => {
     expect(frozen.transportText).toContain('selected terminal lines')
     expect(frozen.displayText).toBe('look at @terminal:`zsh:23-58`')
     expect(freezeComposerTransportPayload(frozen.transportText).transportText).toBe(frozen.transportText)
+  })
+})
+
+describe('quote chips and blockquote transport freeze', () => {
+  afterEach(() => {
+    clearComposerTerminalSelections()
+    $composerQuotes.set({})
+  })
+
+  it('stores trimmed quote text and preserves identity when unchanged', () => {
+    setComposerQuote('  sel  ', '  line1\nline2  ')
+
+    expect($composerQuotes.get()).toEqual({ sel: 'line1\nline2' })
+
+    const stored = $composerQuotes.get()
+    setComposerQuote('sel', 'line1\nline2')
+
+    expect($composerQuotes.get()).toBe(stored)
+  })
+
+  it('ignores empty labels and empty text', () => {
+    setComposerQuote('', 'text')
+    setComposerQuote('sel', '   ')
+
+    expect($composerQuotes.get()).toEqual({})
+  })
+
+  it('finds quoted and bare labels in draft order', () => {
+    expect(quoteLabelsFromDraft('a @quote:`ends.` b @quote:bare c @quote:"two words" d @quote:\'single\'')).toEqual([
+      'ends.',
+      'bare',
+      'two words',
+      'single'
+    ])
+  })
+
+  it('reports whether a draft carries quote chips', () => {
+    expect(draftHasQuoteChips('plain text')).toBe(false)
+    expect(draftHasQuoteChips('see @quote:`sel`')).toBe(true)
+  })
+
+  it('freezes a quote chip into a blockquote before the reply', () => {
+    setComposerQuote('sel', 'line1\nline2')
+
+    const draft = 'my reply @quote:`sel`'
+    const frozen = freezeComposerTransportPayload(draft)
+
+    expect(frozen.transportText).toBe('> line1\n> line2\n\nmy reply')
+    expect(frozen.displayText).toBe(draft)
+    expect(frozen.missingLabels).toEqual([])
+    expect(frozen.missingQuoteLabels).toEqual([])
+  })
+
+  it('freezes quote blocks before terminal fences in a mixed draft', () => {
+    setComposerQuote('sel', 'quoted line')
+    setComposerTerminalSelection('zsh:1-2', 'terminal output')
+
+    const frozen = freezeComposerTransportPayload('reply @terminal:`zsh:1-2` about @quote:`sel`')
+
+    expect(frozen.transportText).toBe('> quoted line\n\n```terminal\nterminal output\n```\n\nreply about')
+    expect(frozen.missingLabels).toEqual([])
+    expect(frozen.missingQuoteLabels).toEqual([])
+  })
+
+  it('reports missing quote labels and leaves transport unchanged', () => {
+    const frozen = freezeComposerTransportPayload('reply @quote:`sel`')
+
+    expect(frozen.missingQuoteLabels).toEqual(['sel'])
+    expect(frozen.missingLabels).toEqual([])
+    expect(frozen.transportText).toBe('reply @quote:`sel`')
+    expect(frozen.displayText).toBe('reply @quote:`sel`')
+  })
+
+  it('does not expand a second time when quote transport is already frozen', () => {
+    setComposerQuote('sel', 'line1\nline2')
+
+    const once = freezeComposerTransportPayload('my reply @quote:`sel`')
+    const twice = freezeComposerTransportPayload(once.transportText)
+
+    expect(twice.transportText).toBe(once.transportText)
+    expect(twice.displayText).toBe(once.transportText)
+    expect(twice.missingQuoteLabels).toEqual([])
+  })
+
+  it('resolves a punctuation label stored verbatim', () => {
+    setComposerQuote('ends.', 'the last words')
+
+    const frozen = freezeComposerTransportPayload('see @quote:`ends.`')
+
+    expect(frozen.transportText).toBe('> the last words\n\nsee')
+    expect(frozen.missingQuoteLabels).toEqual([])
+  })
+
+  it('builds quote context blocks from resolvable chips only', () => {
+    setComposerQuote('sel', 'line1')
+
+    expect(quoteContextBlocksFromDraft('@quote:`sel`')).toEqual(['> line1'])
+    expect(quoteContextBlocksFromDraft('no chips here')).toEqual([])
   })
 })

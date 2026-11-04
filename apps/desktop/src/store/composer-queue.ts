@@ -3,6 +3,7 @@ import { atom } from 'nanostores'
 
 import {
   type ComposerAttachment,
+  draftHasQuoteChips,
   draftHasTerminalChips,
   revokeAttachmentPreviewUrls,
   revokeDiscardedAttachmentPreviews
@@ -114,8 +115,12 @@ export const resetFrozenQueuedTransportsForTests = (): void => {
   frozenQueuedTransportById.clear()
 }
 
+// Covers both chip kinds: a queued entry carrying either kind needs its frozen transport.
 export const queuedEntryHasTerminalChips = (entry: Pick<QueuedPromptEntry, 'displayText' | 'text'>): boolean =>
-  draftHasTerminalChips(entry.displayText ?? '') || draftHasTerminalChips(entry.text)
+  draftHasTerminalChips(entry.displayText ?? '') ||
+  draftHasTerminalChips(entry.text) ||
+  draftHasQuoteChips(entry.displayText ?? '') ||
+  draftHasQuoteChips(entry.text)
 
 export const resolveQueuedPromptTransport = (entry: QueuedPromptEntry): ResolvedQueuedPromptTransport => {
   if (!queuedEntryHasTerminalChips(entry)) {

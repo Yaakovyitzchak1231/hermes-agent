@@ -2,7 +2,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { HermesConnection } from '@/global'
-import { clearComposerTerminalSelections, setComposerTerminalSelection } from '@/store/composer'
+import { $composerQuotes, clearComposerTerminalSelections, setComposerQuote, setComposerTerminalSelection } from '@/store/composer'
 import {
   $parkedQueueSessions,
   $queuedPromptsBySession,
@@ -96,6 +96,7 @@ describe('useComposerQueue park integration', () => {
     resetFrozenQueuedTransportsForTests()
     clearNotifications()
     clearComposerTerminalSelections()
+    $composerQuotes.set({})
     clearNotifications()
     resetFrozenQueuedTransportsForTests()
     setSessionsLoading(false)
@@ -109,6 +110,7 @@ describe('useComposerQueue park integration', () => {
     resetFrozenQueuedTransportsForTests()
     clearNotifications()
     clearComposerTerminalSelections()
+    $composerQuotes.set({})
     clearNotifications()
     resetFrozenQueuedTransportsForTests()
     setSessionsLoading(true)
@@ -515,6 +517,60 @@ describe('useComposerQueue park integration', () => {
     expect(onSubmit).not.toHaveBeenCalled()
     expect(getQueuedPrompts(SESSION_KEY)).toHaveLength(1)
     expect($notifications.get().some(n => n.message.includes('Re-select the lines'))).toBe(true)
+  })
+
+  it('freezes @quote chips at enqueue so the drain uses the frozen blockquote', async () => {
+    setComposerQuote('sel', 'line1\nline2')
+
+    const { draftRef, hook, onSubmit } = renderQueueHook({
+      busy: true,
+      draft: 'my reply @quote:`sel`'
+    })
+
+    act(() => {
+      expect(hook.result.current.queueCurrentDraft()).toBe(true)
+    })
+
+    const queued = getQueuedPrompts(SESSION_KEY)
+
+    expect(queued).toHaveLength(1)
+    expect(queued[0]?.text).toBe('my reply @quote:`sel`')
+    expect(queued[0]?.displayText).toBe('my reply @quote:`sel`')
+    expect(getFrozenQueuedTransport(queued[0]!.id)).toBe('> line1\n> line2\n\nmy reply')
+    expect(draftRef.current).toBe('')
+
+    await act(async () => {
+      await hook.result.current.drainNextQueued()
+    })
+
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmit.mock.calls[0]?.[0]).toBe('> line1\n> line2\n\nmy reply')
+    expect(onSubmit.mock.calls[0]?.[1]).toMatchObject({
+      displayText: 'my reply @quote:`sel`',
+      fromQueue: true
+    })
+  })
+
+  it('blocks drain after a simulated reload when the runtime quote payload is gone', async () => {
+    setComposerQuote('sel', 'line1')
+
+    const { hook, onSubmit } = renderQueueHook({
+      busy: true,
+      draft: 'reply @quote:`sel`'
+    })
+
+    act(() => {
+      expect(hook.result.current.queueCurrentDraft()).toBe(true)
+    })
+
+    simulateComposerQueueReloadForTests()
+
+    await act(async () => {
+      expect(await hook.result.current.drainNextQueued()).toBe(false)
+    })
+
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(getQueuedPrompts(SESSION_KEY)).toHaveLength(1)
   })
 })
 

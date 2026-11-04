@@ -104,6 +104,8 @@ export type ComposerAttachmentPatch = Partial<Omit<ComposerAttachment, 'id' | 'o
 export const $composerDraft = atom('')
 export const $composerAttachments = atom<ComposerAttachment[]>([])
 export const $composerTerminalSelections = atom<Record<string, string>>({})
+/** Label-keyed quoted selection text for `@quote:` chips — memory-only, like terminal selections. */
+export const $composerQuotes = atom<Record<string, string>>({})
 
 // Latched because opening a fresh session may remount the main composer before
 // it can start voice. Session-tile composers deliberately never consume this.
@@ -867,8 +869,11 @@ function terminalFence(text: string) {
   return `\`\`\`terminal\n${text}\n\`\`\``
 }
 
-function stripTerminalRefTokens(draft: string) {
+const QUOTE_REF_RE = /@quote:(`[^`\n]+`|"[^"\n]+"|'[^'\n]+'|\S+)/g
+
+function stripComposerRefTokens(draft: string) {
   return draft
+    .replace(new RegExp(QUOTE_REF_RE.source, 'g'), '')
     .replace(new RegExp(TERMINAL_REF_RE.source, 'g'), '')
     .replace(/[ \t]{2,}/g, ' ')
     .replace(/[ \t]+\n/g, '\n')
@@ -876,43 +881,117 @@ function stripTerminalRefTokens(draft: string) {
     .trim()
 }
 
+function unquoteQuoteRefValue(raw: string) {
+  const head = raw[0]
+  const tail = raw[raw.length - 1]
+  const quoted = (head === '`' && tail === '`') || (head === '"' && tail === '"') || (head === "'" && tail === "'")
+
+  // A quoted value is the exact stored label — trailing punctuation belongs to
+  // it (`ends.`). A bare value sits in prose, so sentence punctuation drops.
+  return quoted ? raw.slice(1, -1).trim() : raw.replace(/[,.;!?]+$/, '').trim()
+}
+
+export function quoteLabelsFromDraft(draft: string): string[] {
+  const labels: string[] = []
+  const seen = new Set<string>()
+
+  for (const match of draft.matchAll(QUOTE_REF_RE)) {
+    const label = unquoteQuoteRefValue(match[1] || '')
+
+    if (!label || seen.has(label)) {
+      continue
+    }
+
+    seen.add(label)
+    labels.push(label)
+  }
+
+  return labels
+}
+
+/** True when the draft still carries `@quote:` chips (not already-frozen transport). */
+export function draftHasQuoteChips(draft: string): boolean {
+  return quoteLabelsFromDraft(draft).length > 0
+}
+
+export function setComposerQuote(label: string, text: string) {
+  const nextLabel = label.trim()
+  const nextText = text.trim()
+
+  if (!nextLabel || !nextText) {
+    return
+  }
+
+  const current = $composerQuotes.get()
+
+  if (current[nextLabel] === nextText) {
+    return
+  }
+
+  $composerQuotes.set({
+    ...current,
+    [nextLabel]: nextText
+  })
+}
+
+function quoteBlock(text: string) {
+  return text
+    .split('\n')
+    .map(line => `> ${line}`)
+    .join('\n')
+}
+
 export interface ComposerTransportPayload {
-  /** Model-facing text: fenced selection blocks with `@terminal:` chips stripped. */
+  /** Model-facing text: quote blockquotes and fenced selection blocks with chips stripped. */
   transportText: string
   /** UI-facing text: original chip form, when it differs from transport. */
   displayText: string
-  /** Chip labels whose selection text is missing from the in-memory map. */
+  /** Terminal chip labels whose selection text is missing from the in-memory map. */
   missingLabels: string[]
+  /** Quote chip labels whose quoted text is missing from the in-memory map. */
+  missingQuoteLabels: string[]
 }
 
 /**
- * Freeze `@terminal:` chips into transport text at the moment a message
- * crosses a send/steer/enqueue boundary. The selection map is memory-only and
- * label-colliding — later resolve against it can inject a different pane's
- * output (#77078). Callers that cannot resolve every chip must fail closed.
+ * Freeze `@terminal:` and `@quote:` chips into transport text at the moment a
+ * message crosses a send/steer/enqueue boundary. Both maps are memory-only and
+ * label-colliding — later resolve against them can inject different content
+ * (#77078). Callers that cannot resolve every chip must fail closed.
  *
+ * Quote blocks come first, then terminal fences, then the typed remainder.
  * Idempotent: already-frozen transport (no chips) is returned unchanged.
  */
 export function freezeComposerTransportPayload(
   draft: string,
-  selections: Record<string, string> = $composerTerminalSelections.get()
+  selections: Record<string, string> = $composerTerminalSelections.get(),
+  quotes: Record<string, string> = $composerQuotes.get()
 ): ComposerTransportPayload {
-  const labels = terminalLabelsFromDraft(draft)
+  const terminalLabels = terminalLabelsFromDraft(draft)
+  const quoteLabels = quoteLabelsFromDraft(draft)
 
-  if (labels.length === 0) {
-    return { transportText: draft, displayText: draft, missingLabels: [] }
+  if (terminalLabels.length === 0 && quoteLabels.length === 0) {
+    return { transportText: draft, displayText: draft, missingLabels: [], missingQuoteLabels: [] }
   }
 
-  const missingLabels = labels.filter(label => !selections[label]?.trim())
+  const missingLabels = terminalLabels.filter(label => !selections[label]?.trim())
+  const missingQuoteLabels = quoteLabels.filter(label => !quotes[label]?.trim())
 
-  if (missingLabels.length > 0) {
-    return { transportText: draft, displayText: draft, missingLabels }
+  if (missingLabels.length > 0 || missingQuoteLabels.length > 0) {
+    return { transportText: draft, displayText: draft, missingLabels, missingQuoteLabels }
   }
+
+  // Quote blocks are emitted once per label in draft order; there is no fence
+  // form to dedup against (unlike terminal fences already present in the draft).
+  const quoteBlocks = quoteLabels.flatMap(label => {
+    const text = quotes[label]?.trim()
+
+    return text ? quoteBlock(text) : []
+  })
 
   const existingFences = new Set(draft.match(/```terminal\n[\s\S]*?\n```/g) ?? [])
   const fences: string[] = []
 
-  for (const label of labels) {
+  for (const label of terminalLabels) {
     const text = selections[label]?.trim()
 
     if (!text) {
@@ -927,10 +1006,26 @@ export function freezeComposerTransportPayload(
     }
   }
 
-  const remainder = stripTerminalRefTokens(draft)
-  const transportText = [...fences, remainder].filter(Boolean).join('\n\n')
+  const remainder = stripComposerRefTokens(draft)
+  const transportText = [...quoteBlocks, ...fences, remainder].filter(Boolean).join('\n\n')
 
-  return { transportText, displayText: draft, missingLabels: [] }
+  return { transportText, displayText: draft, missingLabels: [], missingQuoteLabels: [] }
+}
+
+export function quoteContextBlocksFromDraft(draft: string): string[] {
+  const labels = quoteLabelsFromDraft(draft)
+
+  if (labels.length === 0) {
+    return []
+  }
+
+  const quotes = $composerQuotes.get()
+
+  return labels.flatMap(label => {
+    const text = quotes[label]?.trim()
+
+    return text ? quoteBlock(text) : []
+  })
 }
 
 export function terminalContextBlocksFromDraft(draft: string) {
