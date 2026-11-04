@@ -1,0 +1,14 @@
+.selection-quote-chip {
+  pointer-events: none;
+  user-select: none;
+  z-index: 30;
+}
+
+.selection-quote-chip__button {
+  pointer-events: auto;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}

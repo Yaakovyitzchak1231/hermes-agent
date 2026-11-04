@@ -4,6 +4,7 @@ import { createContext, memo, useCallback, useContext, useMemo, useRef, useState
 import { ChatEmptySlot } from '@/components/assistant-ui/chat-empty-slot'
 import { AssistantMessage } from '@/components/assistant-ui/thread/assistant-message'
 import { ThreadMessageList } from '@/components/assistant-ui/thread/list'
+import { SelectionQuoteChip } from '@/components/assistant-ui/thread/selection-quote-chip'
 import { BackgroundResumeNotice, CenteredThreadSpinner } from '@/components/assistant-ui/thread/status'
 import { SystemMessage } from '@/components/assistant-ui/thread/system-message'
 import { ThreadTimeline } from '@/components/assistant-ui/thread/timeline'
@@ -205,6 +206,7 @@ export const Thread = memo(function Thread({
             <ThreadTimeline />
           </>
         )}
+        <SelectionQuoteChip />
         <ConfirmDialog
           confirmLabel={copy.restoreConfirm}
           description={copy.restoreBody}
