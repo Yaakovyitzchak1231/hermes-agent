@@ -26,6 +26,7 @@ import { hostHas } from '@/lib/host-capabilities'
 import { formatCombo } from '@/lib/keybinds/combo'
 import { isRemoteGateway } from '@/lib/media'
 import { reachablePreviewUrl } from '@/lib/preview-reach'
+import { insertQuoteReply } from '@/lib/quote-reply'
 import { isBrowserOwnedTouch } from '@/lib/touch-interaction'
 import { openPreview } from '@/store/preview'
 
@@ -39,7 +40,7 @@ import {
   openDomContextMenu,
   openTerminalContextMenu
 } from './store'
-import { type ContextMenuDomTarget, isWebUrl, resolveDomTarget } from './target'
+import { type ContextMenuDomTarget, isWebUrl, quoteReplyRow, resolveDomTarget } from './target'
 
 /** Marks a surface that owns PLAIN right-clicks itself (the user-message
  *  reaction bubble). Owned targets inside it — links, images, editables,
@@ -461,14 +462,31 @@ function domSections(
       />
     ])
   } else if (target.selectionText) {
-    sections.push([
+    const items: ReactNode[] = []
+    
+    // Add Reply to selection row when eligible (inside a message root, has selection, not editable)
+    if (quoteReplyRow(target)) {
+      items.push(
+        <Item
+          icon="comment"
+          key="reply-to-selection"
+          label={copy.replyToSelection}
+          onSelect={() => insertQuoteReply(target.selectionText)}
+        />
+      )
+    }
+    
+    // Always include Copy item
+    items.push(
       <Item
         icon="copy"
         key="selection-copy"
         label={t.common.copy}
         onSelect={() => void writeClipboardText(target.selectionText)}
       />
-    ])
+    )
+    
+    sections.push(items)
   }
 
   return sections

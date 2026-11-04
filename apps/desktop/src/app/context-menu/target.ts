@@ -26,6 +26,10 @@ export interface ContextMenuDomTarget {
   onImage: boolean
   /** The live selection's text at the moment of the click. */
   selectionText: string
+  /** True when the target element is inside a message bubble (has an
+   *  enclosing element with data-slot="aui_assistant-message-root" or
+   *  "aui_user-message-root"). */
+  insideMessageRoot: boolean
 }
 
 /** Form fields and `contenteditable` hosts. Mirrors the keybind helper, but
@@ -50,6 +54,10 @@ export function resolveDomTarget(element: Element | null): ContextMenuDomTarget 
   const image = element?.closest('img')
   const linkUrl = anchor?.getAttribute('href')?.trim() ?? ''
   const editable = editableFrom(element)
+  
+  const insideMessageRoot = Boolean(
+    element?.closest('[data-slot="aui_assistant-message-root"], [data-slot="aui_user-message-root"]')
+  )
 
   return {
     composer: captureComposerMenuTarget(editable),
@@ -59,11 +67,25 @@ export function resolveDomTarget(element: Element | null): ContextMenuDomTarget 
     linkUrl: linkUrl === '#' ? '' : linkUrl,
     imageUrl: image instanceof HTMLImageElement ? image.currentSrc || image.src : '',
     onImage: Boolean(image),
-    selectionText: window.getSelection()?.toString().trim() ?? ''
+    selectionText: window.getSelection()?.toString().trim() ?? '',
+    insideMessageRoot
   }
 }
 
 /** True when `url` is something the in-app browser can render. */
 export function isWebUrl(url: string): boolean {
   return /^https?:\/\//i.test(url)
+}
+
+/**
+ * Returns true when the target is eligible for a "Reply to selection" row.
+ *
+ * Conditions:
+ * - The target is inside a message bubble (has an enclosing element with
+ *   data-slot="aui_assistant-message-root" or "aui_user-message-root")
+ * - There's a non‑empty selection
+ * - The target is NOT an editable element (composites keep the browser verbs)
+ */
+export function quoteReplyRow(target: ContextMenuDomTarget): boolean {
+  return target.insideMessageRoot && !!target.selectionText && !target.editable
 }
