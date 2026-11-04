@@ -6,6 +6,7 @@ import * as sessionOwnerUtils from '@/app/session/hooks/use-session-actions/util
 import { PaneVisibleContext } from '@/components/pane-shell/pane-visibility'
 import { $clarifyRequests } from '@/store/clarify'
 import {
+  $composerQuotes,
   clearComposerTerminalSelections,
   type ComposerAttachment,
   setComposerTerminalSelection
@@ -672,6 +673,26 @@ describe('useComposerSubmit busy-turn routing', () => {
 
     expect(onSteer).not.toHaveBeenCalled()
     expect(queueCurrentDraft).not.toHaveBeenCalled()
+  })
+
+  it('refuses to steer when an @quote chip has no quote payload', () => {
+    // Quote text is memory-only: a restored chip with no stored payload must not
+    // forward the bare token to the live turn.
+    $composerQuotes.set({})
+    $notifications.set([])
+
+    const { hook, onSteer, queueCurrentDraft } = renderSubmitHook({
+      busy: true,
+      text: 'my reply @quote:`sel`'
+    })
+
+    act(() => {
+      hook.result.current.submitDraft()
+    })
+
+    expect(onSteer).not.toHaveBeenCalled()
+    expect(queueCurrentDraft).not.toHaveBeenCalled()
+    expect($notifications.get().map(note => note.kind)).toEqual(['warning'])
   })
 })
 

@@ -148,6 +148,8 @@ export const arChat = {
     terminalSelectionMissingTitle: 'تحديد الطرفية غير متاح',
     terminalSelectionMissingBody:
       'أعد تحديد أسطر الطرفية (Ctrl/Cmd+L) قبل الإرسال — لا يحتوي هذا الوسم على النص الأصلي.',
+    quoteSelectionMissingTitle: 'تحديد الاقتباس غير متاح',
+    quoteSelectionMissingBody: 'النص المقتبس لم يعد متاحا. أزل وسم @quote وحاول مرة أخرى.',
     queuedTerminalSelectionExpiredBody:
       'تحديد الطرفية في قائمة الانتظار لم يعد متاحا. أعد تحديد الأسطر (Ctrl/Cmd+L) وضع الرسالة في القائمة مجددا.',
     previewUnavailable: 'المعاينة غير متاحة',

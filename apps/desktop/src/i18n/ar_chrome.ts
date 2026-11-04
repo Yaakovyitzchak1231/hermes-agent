@@ -575,6 +575,7 @@ export const arChrome = {
     tabActions: title => `إجراءات ${title}`
   },
   contextMenu: {
+    replyToSelection: 'الرد على التحديد',
     link: {
       openInApp: 'فتح في متصفح التطبيق',
       openExternal: 'فتح في المتصفح الخارجي',

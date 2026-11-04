@@ -3471,6 +3471,7 @@ export const ruOverrides = {
     tabActions: title => `Действия: ${title}`
   },
   contextMenu: {
+    replyToSelection: 'Ответить на выделенное',
     link: {
       openInApp: 'Открыть во встроенном браузере',
       openExternal: 'Открыть во внешнем браузере',

@@ -3469,6 +3469,9 @@ export const en: Translations = {
     terminalSelectionMissingTitle: 'Terminal selection unavailable',
     terminalSelectionMissingBody:
       'Re-select the terminal lines (Ctrl/Cmd+L) before sending — this chip has no original text.',
+    quoteSelectionMissingTitle: 'Quoted selection unavailable',
+    quoteSelectionMissingBody:
+      'The quoted text is no longer available. Remove the @quote chip and try again.',
     queuedTerminalSelectionExpiredBody:
       'This queued terminal selection is no longer available. Re-select the lines (Ctrl/Cmd+L) and queue the message again.',
     previewUnavailable: 'Preview unavailable',
@@ -4393,6 +4396,7 @@ export const en: Translations = {
   },
 
   contextMenu: {
+    replyToSelection: 'Reply to selection',
     link: {
       openInApp: 'Open in in-app browser',
       openExternal: 'Open in external browser',

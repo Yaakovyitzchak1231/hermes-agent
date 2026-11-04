@@ -583,6 +583,18 @@ export function useComposerSubmit({
       return
     }
 
+    // Same fail-closed boundary for `@quote:` chips: a steer whose quote text
+    // is gone must not forward the bare chip token.
+    if (frozen.missingQuoteLabels.length > 0) {
+      notify({
+        kind: 'warning',
+        title: translateNow('composer.quoteSelectionMissingTitle'),
+        message: translateNow('composer.quoteSelectionMissingBody')
+      })
+
+      return
+    }
+
     triggerHaptic('submit')
     clearDraft()
 

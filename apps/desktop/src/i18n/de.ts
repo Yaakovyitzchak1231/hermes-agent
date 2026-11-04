@@ -4813,6 +4813,7 @@ export const deOverrides = {
     tabActions: title => `Aktionen für ${title}`
   },
   contextMenu: {
+    replyToSelection: 'Auf Auswahl antworten',
     link: {
       openInApp: 'Im In-App-Browser öffnen',
       openExternal: 'Im externen Browser öffnen',

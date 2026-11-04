@@ -170,6 +170,8 @@ export const zhHantChat = {
     queueDroppedBody: '該背景佇列項目因工作階段多次嘗試後仍無法恢復而遭捨棄。佇列中的其他內容不受影響。',
     terminalSelectionMissingTitle: '無法使用終端選區',
     terminalSelectionMissingBody: '傳送前請重新選擇終端行（Ctrl/Cmd+L）— 此標籤沒有原始文字。',
+    quoteSelectionMissingTitle: '無法使用引用選區',
+    quoteSelectionMissingBody: '引用的文字已無法使用。請移除 @quote 標籤後再試一次。',
     queuedTerminalSelectionExpiredBody: '佇列中的終端選區已無法使用。請重新選取行（Ctrl/Cmd+L）並再次加入佇列。',
     previewUnavailable: '預覽不可用',
     previewLabel: label => `預覽 ${label}`,

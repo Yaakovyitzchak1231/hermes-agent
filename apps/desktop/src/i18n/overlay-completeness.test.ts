@@ -71,3 +71,34 @@ it('lists no known gap for a key the English catalog no longer has', () => {
 
   expect(Object.keys(knownGaps).filter(key => !english.has(key))).toEqual([])
 })
+
+// Quote-reply copy: `contextMenu.replyToSelection` feeds the selection context
+// menu, the two `composer.quoteSelectionMissing*` keys feed the fail-closed send
+// notice when an `@quote:` chip's source text is gone. The four translated
+// locales carry the composer pair; de/es/fr/ru fall back to English and are
+// registered as gaps.
+it('ships the quote-reply keys in English with the expected gap list', () => {
+  expect(en.contextMenu.replyToSelection).toBe('Reply to selection')
+  expect(en.composer.quoteSelectionMissingTitle).toBe('Quoted selection unavailable')
+  expect(en.composer.quoteSelectionMissingBody).toBe(
+    'The quoted text is no longer available. Remove the @quote chip and try again.'
+  )
+
+  expect(knownGaps['composer.quoteSelectionMissingTitle']).toEqual(['de', 'es', 'fr', 'ru'])
+  expect(knownGaps['composer.quoteSelectionMissingBody']).toEqual(['de', 'es', 'fr', 'ru'])
+})
+
+it('translates contextMenu.replyToSelection in every locale overlay', () => {
+  const missing = Object.entries(OVERLAYS).flatMap(([locale, overlay]) =>
+    flattenMessageKeys(overlay).includes('contextMenu.replyToSelection') ? [] : [`${locale}: contextMenu.replyToSelection`]
+  )
+
+  expect(missing).toEqual([])
+})
+
+it.each(['ja', 'zh', 'zh-hant', 'ar'] as const)('%s translates the quote-selection-missing composer copy', locale => {
+  const keys = new Set(flattenMessageKeys(OVERLAYS[locale]))
+
+  expect(keys.has('composer.quoteSelectionMissingTitle')).toBe(true)
+  expect(keys.has('composer.quoteSelectionMissingBody')).toBe(true)
+})

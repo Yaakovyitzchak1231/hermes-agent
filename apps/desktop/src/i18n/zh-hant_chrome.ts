@@ -524,6 +524,7 @@ export const zhHantChrome = {
   },
 
   contextMenu: {
+    replyToSelection: '回覆選取內容',
     link: {
       openInApp: '在應用程式內瀏覽器中開啟',
       openExternal: '在外部瀏覽器中開啟',

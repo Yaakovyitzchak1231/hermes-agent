@@ -4799,6 +4799,7 @@ export const esOverrides = {
     tabActions: title => `Acciones de ${title}`
   },
   contextMenu: {
+    replyToSelection: 'Responder a la selección',
     link: {
       openInApp: 'Abrir en el navegador integrado',
       openExternal: 'Abrir en navegador externo',

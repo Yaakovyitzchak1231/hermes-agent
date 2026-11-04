@@ -4825,6 +4825,7 @@ export const frOverrides = {
     tabActions: title => `Actions pour ${title}`
   },
   contextMenu: {
+    replyToSelection: 'Répondre à la sélection',
     link: {
       openInApp: 'Ouvrir dans le navigateur intégré',
       openExternal: 'Ouvrir dans le navigateur externe',

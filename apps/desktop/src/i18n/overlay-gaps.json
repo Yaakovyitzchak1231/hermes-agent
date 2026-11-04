@@ -362,6 +362,8 @@
   "composer.queueResumeTip": ["ar"],
   "composer.queuedPaused": ["ar"],
   "composer.queuedTerminalSelectionExpiredBody": ["de","es","fr","ru"],
+  "composer.quoteSelectionMissingBody": ["de","es","fr","ru"],
+  "composer.quoteSelectionMissingTitle": ["de","es","fr","ru"],
   "composer.speakReplies": ["ar"],
   "composer.steer": ["ja","zh-hant"],
   "composer.stopSpeakingReplies": ["ar"],

@@ -269,6 +269,18 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
           return false
         }
 
+        // Same fail-closed boundary for `@quote:` chips: the quote text is
+        // memory-only, so a chip whose source is gone must not send as a bare token.
+        if (frozen.missingQuoteLabels.length > 0) {
+          notify({
+            kind: 'warning',
+            title: translateNow('composer.quoteSelectionMissingTitle'),
+            message: translateNow('composer.quoteSelectionMissingBody')
+          })
+
+          return false
+        }
+
         transportRaw = frozen.transportText
 
         if (!bubbleOverride && frozen.displayText !== frozen.transportText) {

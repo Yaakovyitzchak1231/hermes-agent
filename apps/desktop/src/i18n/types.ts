@@ -2976,6 +2976,8 @@ export interface Translations extends NoticeTranslations {
     queueDroppedBody: string
     terminalSelectionMissingTitle: string
     terminalSelectionMissingBody: string
+    quoteSelectionMissingTitle: string
+    quoteSelectionMissingBody: string
     queuedTerminalSelectionExpiredBody: string
     previewUnavailable: string
     previewLabel: (label: string) => string
@@ -3841,6 +3843,7 @@ export interface Translations extends NoticeTranslations {
   }
 
   contextMenu: {
+    replyToSelection: string
     link: {
       openInApp: string
       openExternal: string

@@ -3358,6 +3358,8 @@ export const zhOverrides = {
     queueDroppedBody: '该后台队列条目因会话多次尝试后仍无法恢复而被丢弃。队列中的其他内容不受影响。',
     terminalSelectionMissingTitle: '无法使用终端选区',
     terminalSelectionMissingBody: '发送前请重新选择终端行（Ctrl/Cmd+L）— 此标签没有原始文本。',
+    quoteSelectionMissingTitle: '无法使用引用选区',
+    quoteSelectionMissingBody: '引用的文本已不再可用。请移除 @quote 标签后重试。',
     queuedTerminalSelectionExpiredBody: '队列中的终端选区已不可用。请重新选择行（Ctrl/Cmd+L）并再次加入队列。',
     previewUnavailable: '预览不可用',
     previewLabel: label => `预览 ${label}`,
@@ -4227,6 +4229,7 @@ export const zhOverrides = {
   },
 
   contextMenu: {
+    replyToSelection: '回复所选内容',
     link: {
       openInApp: '在应用内浏览器中打开',
       openExternal: '在外部浏览器中打开',

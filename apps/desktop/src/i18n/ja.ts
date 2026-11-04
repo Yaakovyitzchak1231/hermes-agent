@@ -2435,6 +2435,9 @@ export const jaOverrides = {
     terminalSelectionMissingTitle: 'ターミナル選択を利用できません',
     terminalSelectionMissingBody:
       '送信前にターミナル行を再選択（Ctrl/Cmd+L）してください — チップに元のテキストがありません。',
+    quoteSelectionMissingTitle: '引用選択を利用できません',
+    quoteSelectionMissingBody:
+      '引用テキストはもう利用できません。@quote チップを削除して、もう一度試してください。',
     queuedTerminalSelectionExpiredBody:
       'キュー内のターミナル選択はもう利用できません。行を再選択（Ctrl/Cmd+L）して、もう一度キューに入れてください。',
     previewUnavailable: 'プレビューは利用できません',
@@ -3224,6 +3227,7 @@ export const jaOverrides = {
   },
 
   contextMenu: {
+    replyToSelection: '選択範囲に返信',
     link: {
       openInApp: 'アプリ内ブラウザーで開く',
       openExternal: '外部ブラウザーで開く',
